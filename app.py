@@ -53,15 +53,14 @@ elif st.session_state.last_theme != current_theme:
     time.sleep(0.5)
     st.rerun()
 
-# === CABECERA CON LOGO QUE SE ADAPTA AL TEMA Y BIEN POSICIONADO ===
+# === CABECERA CON LOGO ADAPTATIVO Y MÁS CERCANO ===
 st.markdown("""
 <style>
     .logo-container {
         display: flex;
         justify-content: flex-end;
-        align-items: center;
-        margin-top: 10px;
-        height: 100%;
+        align-items: flex-start;
+        margin-top: 4px;
     }
 
     .logo-dark {
@@ -95,7 +94,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-col1, col2 = st.columns([4, 1])
+col1, col2 = st.columns([5, 0.7])
 with col1:
     st.markdown("## 🔥 CALCULADORA ROMPE KOM'S")
     st.markdown("Analiza tus segmentos favoritos usando tu FTP, peso y tipo de bici.")
