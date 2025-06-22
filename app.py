@@ -52,7 +52,7 @@ if "token_guardado" not in st.session_state:
 query_params = st.query_params
 if "code" in query_params and not st.session_state["token_guardado"]:
     code = query_params["code"]
-    token_info = exchange_code_for_token(code)
+    token_info = intercambiar_codigo_por_token(code)
     if token_info:
         st.session_state["token_guardado"] = True
         st.success("✅ Autenticación completada. Puedes continuar.")
