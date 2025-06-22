@@ -8,7 +8,7 @@ from pathlib import Path
 import base64
 from urllib.parse import urlencode
 
-from Strava.strava_utils import (
+from strava_utils import (
     get_segments_from_activity,
     iniciar_sesion_strava,
     sesion_iniciada,
