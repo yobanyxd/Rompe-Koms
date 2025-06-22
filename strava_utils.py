@@ -24,19 +24,21 @@ class TokenHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write("""
                 <html>
-                <head>
-                    <title>Autenticación exitosa</title>
-                    <script>
-                        setTimeout(() => {
-                            window.close();
-                        }, 2000);
-                    </script>
-                </head>
-                <body style='font-family: sans-serif;'>
-                    <h2>✅ Autenticación completada.</h2>
-                    <p>Esta ventana se cerrará automáticamente en unos segundos.</p>
-                </body>
-                </html>
+<head>
+    <title>Autenticación exitosa</title>
+    <script>
+        setTimeout(() => {
+            window.opener.location.reload();  // Recarga la app principal
+            window.close();                   // Cierra esta ventana
+        }, 1500);
+    </script>
+</head>
+<body style='font-family: sans-serif;'>
+    <h2>✅ Autenticación completada.</h2>
+    <p>Esta ventana se cerrará automáticamente en unos segundos.</p>
+</body>
+</html>
+
                 """.encode("utf-8"))
             else:
                 self.send_response(200)
