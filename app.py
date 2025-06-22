@@ -1,4 +1,15 @@
 import streamlit as st
+import strava_utils as strava
+
+# ✅ VERIFICA SI STRAVA DEVOLVIÓ UN TOKEN EN LA URL
+query_params = st.query_params
+if "code" in query_params:
+    code = query_params["code"]
+    token_info = strava.intercambiar_codigo_por_token(code)
+    if token_info:
+        st.success("✅ Autenticación completada. Puedes continuar.")
+    else:
+        st.error("❌ Fallo al obtener token. Intenta iniciar sesión nuevamente.")
 import gpxpy
 import math
 import os
