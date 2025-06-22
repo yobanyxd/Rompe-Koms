@@ -28,10 +28,7 @@ with col2:
     if os.path.exists(logo_path):
         st.image(logo_path, width=100)
 
-# Manejo de sesión
-if not sesion_iniciada() and os.path.exists("strava_token.json"):
-    st.rerun()
-
+# === MANEJO DE SESIÓN STRAVA ===
 if sesion_iniciada():
     datos = obtener_datos_atleta()
     if datos:
@@ -42,9 +39,14 @@ if sesion_iniciada():
         if st.button("🔓 Cerrar sesión"):
             cerrar_sesion_strava()
             st.rerun()
+    else:
+        st.warning("⚠️ Hubo un error al obtener datos del atleta. Intenta cerrar sesión y volver a iniciar.")
+        if st.button("🔓 Forzar cierre de sesión"):
+            cerrar_sesion_strava()
+            st.rerun()
 else:
     st.warning("🔐 No has iniciado sesión con Strava")
-    if st.button("Iniciar sesión con Strava"):
+    if st.button("🔗 Iniciar sesión con Strava"):
         iniciar_sesion_strava()
         st.info("✅ Autenticación iniciada. Se abrió una nueva pestaña. Luego regresa y actualiza la app si es necesario.")
 
