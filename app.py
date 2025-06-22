@@ -59,18 +59,21 @@ st.markdown("""
 .header-container {
     display: flex;
     align-items: center;
-    gap: 0.2rem;
+    gap: 0.2rem; /* ¡Más pegadito al título! */
     margin-bottom: 1rem;
 }
 .logo-container {
-    margin-top: -4px;
+    margin-top: -4px; /* Ajuste fino de alineación */
 }
 .logo-dark, .logo-light {
     width: 85px;
     height: auto;
 }
+
+/* Mostrar solo el logo que corresponde al tema */
 .logo-dark { display: none; }
 .logo-light { display: block; }
+
 @media (prefers-color-scheme: dark) {
     .logo-dark { display: block; }
     .logo-light { display: none; }
@@ -133,11 +136,6 @@ altura = st.number_input("📏 Altura (cm)", value=170)
 tipo_bici = st.selectbox("Tipo de bicicleta", options=["🚴‍♂️ Ruta", "🛞 Triatlón/Cabrita", "🚵‍♀️ MTB", "🚲 Urbana"])
 ftp = st.number_input("⚡ Tu FTP (watts)", value=275)
 tiempo_objetivo = st.text_input("🎯 Tiempo objetivo (opcional, formato mm o mm:ss)", value="")
-
-# === NUEVAS FUNCIONES ===
-col3, col4 = st.columns(2)
-potencia_deseada = col3.number_input("⚙️ Ir a X watts (opcional)", value=0)
-tiempo_real_str = col4.text_input("⏱️ Tiempo realizado (opcional, mm o mm:ss)", value="")
 
 # === PARÁMETROS ===
 bicis = {
