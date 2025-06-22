@@ -58,12 +58,13 @@ with col2:
     st.markdown(logo_html, unsafe_allow_html=True)
 
 query_params = st.query_params
-# Manejo de sesión tras autenticación con Strava
-if "code" in query_params and not st.session_state.get("autenticado", False):
+if "code" in query_params and "token_guardado" not in st.session_state:
     code = query_params["code"][0]
-    exchange_code_for_token(code)
-    st.session_state["autenticado"] = True
-    st.rerun()
+    data = exchange_code_for_token(code)
+    if data:
+        st.session_state["token_guardado"] = True
+        st.success("✅ Autenticación completada. Puedes continuar.")
+        st.experimental_rerun()  # Esto ya no causa loops porque hay una bandera
 
 # Evita mensaje de éxito duplicado después del refresh
 if st.session_state.get("autenticado", False):
