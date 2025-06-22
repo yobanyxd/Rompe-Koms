@@ -1,4 +1,3 @@
-
 import streamlit as st
 import gpxpy
 import math
@@ -27,7 +26,6 @@ if code:
     token_data = intercambiar_codigo_por_token(code)
     if token_data:
         st.success("✅ ¡Sesión iniciada correctamente!")
-        st.query_params.clear()
         st.rerun()
     else:
         st.error("❌ Hubo un problema al iniciar sesión con Strava.")
@@ -150,6 +148,24 @@ def procesar(dist, elev, masa):
         st.markdown("---")
         st.subheader("📊 Resultado estimado")
         st.success(f"⏱️ Con **{potencia:.0f}w**, tardarías aprox. **{tiempo_min:.1f} minutos**")
+
+# === ARCHIVO GPX O LINK STRAVA ===
+gpx_file = None
+actividad_id = None
+
+if modo == "📂 Archivo GPX":
+    gpx_file = st.file_uploader("📁 Sube tu archivo GPX", type=["gpx"])
+
+elif modo == "🌐 Actividad de Strava":
+    actividad_url = st.text_input("🔗 Pega el link o ID de una actividad pública de Strava")
+    if actividad_url:
+        try:
+            if "activities" in actividad_url:
+                actividad_id = actividad_url.split("/")[-1]
+            else:
+                actividad_id = actividad_url
+        except:
+            st.error("❌ Link inválido")
 
 # === PROCESAMIENTO DE GPX ===
 if gpx_file:
