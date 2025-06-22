@@ -3,6 +3,7 @@ import gpxpy
 import math
 import os
 import matplotlib.pyplot as plt
+from gpxpy.geo import haversine_distance
 from urllib.parse import urlparse, parse_qs
 
 from strava_utils import (
@@ -160,10 +161,15 @@ if gpx_file:
         for seg in track.segments:
             puntos.extend(seg.points)
             for i in range(1, len(seg.points)):
-                d = seg.points[i-1]._3d(seg.points[i])
-                elev = max(0, seg.points[i].elevation - seg.points[i-1].elevation)
-                total_dist += d
-                total_elev += elev
+    punto1 = seg.points[i-1]
+    punto2 = seg.points[i]
+    d = haversine_distance(
+        punto1.latitude, punto1.longitude, punto1.elevation,
+        punto2.latitude, punto2.longitude, punto2.elevation
+    )
+    elev = max(0, punto2.elevation - punto1.elevation)
+    total_dist += d
+    total_elev += elev
     distancias = []
     elevaciones = []
     dist_acumulada = 0
