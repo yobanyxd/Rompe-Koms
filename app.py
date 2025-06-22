@@ -28,15 +28,25 @@ with col2:
     if os.path.exists(logo_path):
         st.image(logo_path, width=100)
 
+# === MODO DE ENTRADA ===
+col1, col2 = st.columns([2, 2])
+with col1:
+    modo = st.radio("Selecciona el modo de entrada:", ["📂 Archivo GPX", "🌐 Actividad de Strava"], horizontal=True)
+
+# Mostrar la opción de login con Strava solo si seleccionan modo Strava
+usar_strava_login = False
+with col2:
+    if modo == "🌐 Actividad de Strava":
+        usar_strava_login = st.checkbox("🔐 Iniciar sesión con Strava (opcional)", value=False)
+
 # === INICIO DE SESIÓN CON STRAVA (OPCIONAL) ===
-with st.expander("🔐 Opcional: Inicia sesión con Strava para analizar tus segmentos automáticamente"):
+if usar_strava_login:
     if sesion_iniciada():
         datos = obtener_datos_atleta()
         if datos:
             col1, col2 = st.columns([1, 6])
             col1.image(datos["profile"], width=50)
             col2.markdown(f"**{datos['firstname']} {datos['lastname']}**")
-
             if st.button("🔓 Cerrar sesión"):
                 cerrar_sesion_strava()
                 st.rerun()
@@ -52,17 +62,17 @@ with st.expander("🔐 Opcional: Inicia sesión con Strava para analizar tus seg
             unsafe_allow_html=True
         )
 
-
-# === MODO DE ENTRADA ===
-col1, col2 = st.columns([2, 2])
-with col1:
-    modo = st.radio("Selecciona el modo de entrada:", ["📂 Archivo GPX", "🌐 Actividad de Strava"], horizontal=True)
-
-# Mostrar la opción de login con Strava solo si seleccionan modo Strava
-usar_strava_login = False
-with col2:
-    if modo == "🌐 Actividad de Strava":
-        usar_strava_login = st.checkbox("🔐 Iniciar sesión con Strava (opcional)", value=False)
+# === ENTRADA DEL USUARIO ===
+actividad_id = ""
+gpx_file = None
+if modo == "📂 Archivo GPX":
+    gpx_file = st.file_uploader("📂 Sube tu archivo GPX", type=["gpx"])
+elif modo == "🌐 Actividad de Strava":
+    actividad_input = st.text_input("🔗 Pega el link o ID de una actividad pública de Strava", placeholder="Ej. https://www.strava.com/activities/14868598235")
+    if "activities" in actividad_input:
+        actividad_id = actividad_input.strip().split("activities/")[-1].split("/")[0]
+    else:
+        actividad_id = actividad_input.strip()
 
 # === DATOS DEL USUARIO ===
 col1, col2 = st.columns(2)
@@ -141,7 +151,7 @@ def procesar(dist, elev, masa):
         st.subheader("📊 Resultado estimado")
         st.success(f"⏱️ Con **{potencia:.0f}w**, tardarías aprox. **{tiempo_min:.1f} minutos**")
 
-# === GPX ===
+# === PROCESAMIENTO DE GPX ===
 if gpx_file:
     gpx = gpxpy.parse(gpx_file.read().decode("utf-8"))
     total_dist = 0
@@ -167,7 +177,7 @@ if gpx_file:
     graficar(distancias, elevaciones)
     procesar(total_dist, total_elev, masa_total)
 
-# === STRAVA ===
+# === PROCESAMIENTO DE STRAVA ===
 elif actividad_id:
     segmentos = get_segments_from_activity(actividad_id)
     if not segmentos:
