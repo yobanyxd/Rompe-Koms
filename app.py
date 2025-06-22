@@ -53,61 +53,50 @@ elif st.session_state.last_theme != current_theme:
     time.sleep(0.5)
     st.rerun()
 
-# === CABECERA CON LOGO ADAPTATIVO Y MÁS CERCANO ===
+# === CABECERA CON LOGO PEGADO AL TÍTULO ===
 st.markdown("""
 <style>
-    .logo-container {
-        display: flex;
-        justify-content: flex-end;
-        align-items: flex-start;
-        margin-top: 4px;
+.header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+.logo-container {
+    margin-left: 1rem;
+}
+.logo-dark {
+    display: none;
+}
+@media (prefers-color-scheme: dark) {
+    .logo-dark {
+        display: block;
     }
-
+    .logo-light {
+        display: none;
+    }
+}
+@media (prefers-color-scheme: light) {
     .logo-dark {
         display: none;
     }
-
-    @media (prefers-color-scheme: dark) {
-        .logo-dark {
-            display: block;
-        }
-        .logo-light {
-            display: none;
-        }
+    .logo-light {
+        display: block;
     }
-
-    @media (prefers-color-scheme: light) {
-        .logo-dark {
-            display: none;
-        }
-        .logo-light {
-            display: block;
-        }
-    }
-
-    @media (max-width: 600px) {
-        .logo-container {
-            justify-content: center;
-            margin-top: 1rem;
-        }
-    }
+}
 </style>
-""", unsafe_allow_html=True)
 
-col1, col2 = st.columns([5, 0.7])
-with col1:
-    st.markdown("## 🔥 CALCULADORA ROMPE KOM'S")
-    st.markdown("Analiza tus segmentos favoritos usando tu FTP, peso y tipo de bici.")
-with col2:
-    st.markdown(
-        """
-        <div class="logo-container">
-            <img class="logo-light" src="https://raw.githubusercontent.com/yobanyxd/Rompe-Koms/main/logo_dark.png" width="100">
-            <img class="logo-dark" src="https://raw.githubusercontent.com/yobanyxd/Rompe-Koms/main/logo_light.png" width="100">
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+<div class="header-container">
+    <div>
+        <h2>🔥 CALCULADORA ROMPE KOM'S</h2>
+        <p>Analiza tus segmentos favoritos usando tu FTP, peso y tipo de bici.</p>
+    </div>
+    <div class="logo-container">
+        <img class="logo-light" src="https://raw.githubusercontent.com/yobanyxd/Rompe-Koms/main/logo_dark.png" width="90">
+        <img class="logo-dark" src="https://raw.githubusercontent.com/yobanyxd/Rompe-Koms/main/logo_light.png" width="90">
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 # === MODO DE ENTRADA ===
 modo = st.radio("Selecciona el modo de entrada:", ["📂 Archivo GPX", "🌐 Segmento Strava"], horizontal=True)
