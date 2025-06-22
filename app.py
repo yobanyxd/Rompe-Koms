@@ -63,7 +63,7 @@ if "code" in query_params and not st.session_state.get("autenticado", False):
     code = query_params["code"][0]
     exchange_code_for_token(code)
     st.session_state["autenticado"] = True
-    st.experimental_rerun()
+    st.rerun()
 
 # Evita mensaje de éxito duplicado después del refresh
 if st.session_state.get("autenticado", False):
