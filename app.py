@@ -58,11 +58,17 @@ with col2:
     st.markdown(logo_html, unsafe_allow_html=True)
 
 query_params = st.query_params
-if "code" in query_params:
+# Manejo de sesión tras autenticación con Strava
+if "code" in query_params and not st.session_state.get("autenticado", False):
     code = query_params["code"][0]
     exchange_code_for_token(code)
-    st.success("✅ Autenticación completada. Puedes continuar.")
-    st.rerun()
+    st.session_state["autenticado"] = True
+    st.experimental_rerun()
+
+# Evita mensaje de éxito duplicado después del refresh
+if st.session_state.get("autenticado", False):
+    st.session_state.pop("autenticado")
+
 
 if sesion_iniciada():
     datos = obtener_datos_atleta()
