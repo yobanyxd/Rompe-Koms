@@ -2,6 +2,7 @@ import streamlit as st
 import gpxpy
 import math
 import os
+import time
 import matplotlib.pyplot as plt
 from urllib.parse import urlparse, parse_qs
 
@@ -14,7 +15,7 @@ from strava_utils import (
     intercambiar_codigo_por_token
 )
 
-# ✅ Esta función va aquí, fuera del bloque de imports
+# ✅ Función para calcular distancia 3D entre dos puntos GPX
 def haversine_distance(lat1, lon1, elev1, lat2, lon2, elev2):
     R = 6371000  # Radio de la Tierra en metros
     phi1 = math.radians(lat1)
@@ -43,16 +44,52 @@ if code:
     else:
         st.error("❌ Error al obtener token de Strava.")
 
-# === CABECERA ===
-tema = st.get_option("theme.base")
-logo_path = "logo_dark.png" if tema == "dark" else "logo_light.png"
-col1, col2 = st.columns([4, 1])
-with col1:
-    st.markdown("## 🔥 CALCULADORA ROMPE KOM'S")
-    st.markdown("Analiza tus segmentos favoritos usando tu FTP, peso y tipo de bici.")
-with col2:
-    if os.path.exists(logo_path):
-        st.image(logo_path, width=100)
+# === DETECTAR CAMBIO DE TEMA Y FORZAR RECARGA ===
+current_theme = st.get_option("theme.base")
+if "last_theme" not in st.session_state:
+    st.session_state.last_theme = current_theme
+elif st.session_state.last_theme != current_theme:
+    st.session_state.last_theme = current_theme
+    time.sleep(0.5)
+    st.rerun()
+
+# === CABECERA CON LOGO PEGADO AL TÍTULO ===
+st.markdown("""
+<style>
+.header-container {
+    display: flex;
+    align-items: center;
+    gap: 0.2rem; /* ¡Más pegadito al título! */
+    margin-bottom: 1rem;
+}
+.logo-container {
+    margin-top: -4px; /* Ajuste fino de alineación */
+}
+.logo-dark, .logo-light {
+    width: 85px;
+    height: auto;
+}
+
+/* Mostrar solo el logo que corresponde al tema */
+.logo-dark { display: none; }
+.logo-light { display: block; }
+
+@media (prefers-color-scheme: dark) {
+    .logo-dark { display: block; }
+    .logo-light { display: none; }
+}
+</style>
+
+<div class="header-container">
+    <h2>🔥 CALCULADORA ROMPE KOM'S</h2>
+    <div class="logo-container">
+        <img class="logo-light" src="https://raw.githubusercontent.com/yobanyxd/Rompe-Koms/main/logo_dark.png" alt="logo">
+        <img class="logo-dark" src="https://raw.githubusercontent.com/yobanyxd/Rompe-Koms/main/logo_light.png" alt="logo">
+    </div>
+</div>
+
+<p>Analiza tus segmentos favoritos usando tu FTP, peso y tipo de bici.</p>
+""", unsafe_allow_html=True)
 
 # === MODO DE ENTRADA ===
 modo = st.radio("Selecciona el modo de entrada:", ["📂 Archivo GPX", "🌐 Segmento Strava"], horizontal=True)
@@ -130,6 +167,7 @@ def procesar(dist, elev, masa):
     dist_km = dist / 1000
     st.markdown(f"📏 **Distancia:** {dist_km:.2f} km")
     st.markdown(f"🧗 **Desnivel:** {elev:.0f} m")
+    
     if tiempo_objetivo:
         try:
             partes = tiempo_objetivo.strip().split(":")
@@ -149,6 +187,7 @@ def procesar(dist, elev, masa):
     else:
         potencia = ftp * 0.9
         pendiente = elev / dist if dist != 0 else 0
+
         def buscar_velocidad(p):
             v = 1.0
             for _ in range(1000):
@@ -158,11 +197,16 @@ def procesar(dist, elev, masa):
                     return v
                 v += error / 200
             return v
+
         v = buscar_velocidad(potencia)
-        tiempo_min = (dist / v) / 60
+        tiempo_seg = int(dist / v)  # Tiempo en segundos
+        minutos = tiempo_seg // 60
+        segundos = tiempo_seg % 60
+
         st.markdown("---")
         st.subheader("📊 Resultado estimado")
-        st.success(f"⏱️ Con **{potencia:.0f}w**, tardarías aprox. **{tiempo_min:.1f} minutos**")
+        st.success(f"⏱️ Con **{potencia:.0f}w**, tardarías aprox. **{minutos} min {segundos} seg**")
+
 
 # === PROCESAMIENTO DE GPX ===
 if gpx_file:
