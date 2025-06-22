@@ -59,21 +59,18 @@ st.markdown("""
 .header-container {
     display: flex;
     align-items: center;
-    gap: 0.2rem; /* ¡Más pegadito al título! */
+    gap: 0.2rem;
     margin-bottom: 1rem;
 }
 .logo-container {
-    margin-top: -4px; /* Ajuste fino de alineación */
+    margin-top: -4px;
 }
 .logo-dark, .logo-light {
     width: 85px;
     height: auto;
 }
-
-/* Mostrar solo el logo que corresponde al tema */
 .logo-dark { display: none; }
 .logo-light { display: block; }
-
 @media (prefers-color-scheme: dark) {
     .logo-dark { display: block; }
     .logo-light { display: none; }
@@ -136,6 +133,11 @@ altura = st.number_input("📏 Altura (cm)", value=170)
 tipo_bici = st.selectbox("Tipo de bicicleta", options=["🚴‍♂️ Ruta", "🛞 Triatlón/Cabrita", "🚵‍♀️ MTB", "🚲 Urbana"])
 ftp = st.number_input("⚡ Tu FTP (watts)", value=275)
 tiempo_objetivo = st.text_input("🎯 Tiempo objetivo (opcional, formato mm o mm:ss)", value="")
+
+# === NUEVAS FUNCIONES ===
+col3, col4 = st.columns(2)
+potencia_deseada = col3.number_input("⚙️ Ir a X watts (opcional)", value=0)
+tiempo_real_str = col4.text_input("⏱️ Tiempo realizado (opcional, mm o mm:ss)", value="")
 
 # === PARÁMETROS ===
 bicis = {
@@ -245,48 +247,7 @@ if gpx_file:
 
     masa_total = peso_ciclista + peso_bici
     graficar(distancias, elevaciones)
-    procesar(total_dist, total_elev, masa_total)    
-    # === OPCIONES EXTRAS DE CÁLCULO PERSONALIZADO ===
-st.markdown("---")
-st.subheader("🧪 Cálculo personalizado")
-
-colA, colB = st.columns(2)
-
-with colA:
-    potencia_personal = st.number_input("🔢 Ingresa potencia (watts)", min_value=50, max_value=1500, step=10, value=250)
-
-with colB:
-    tiempo_seg_personal = st.text_input("⏱️ Tiempo (formato mm o mm:ss) para calcular vatios", placeholder="Ej: 12:30")
-
-if potencia_personal and distancia and elevacion:
-    pendiente = elevacion / distancia if distancia else 0
-
-    def buscar_velocidad(p):
-        v = 1.0
-        for _ in range(1000):
-            total = masa_total * g * pendiente * v + masa_total * g * Crr * v + 0.5 * rho * CdA * v**3
-            error = p - total
-            if abs(error) < 0.1:
-                return v
-            v += error / 200
-        return v
-
-    velocidad = buscar_velocidad(potencia_personal)
-    tiempo_total_s = int(distancia / velocidad)
-    min_extra = tiempo_total_s // 60
-    seg_extra = tiempo_total_s % 60
-    st.success(f"⏱️ Con **{potencia_personal}w**, tardarías aprox. **{min_extra} min {seg_extra} seg**")
-
-if tiempo_seg_personal:
-    try:
-        partes = tiempo_seg_personal.strip().split(":")
-        minutos = int(partes[0])
-        segundos = int(partes[1]) if len(partes) > 1 else 0
-        tiempo_s = minutos * 60 + segundos
-        potencia_estim = estimar_potencia(distancia, elevacion, tiempo_s, masa_total)
-        st.success(f"⚡ Se estima que necesitaste aprox. **{potencia_estim:.0f}w** para ese tiempo")
-    except:
-        st.error("⚠️ Tiempo mal escrito. Usa el formato mm o mm:ss")
+    procesar(total_dist, total_elev, masa_total)
 
 # === PROCESAMIENTO DE STRAVA ===
 elif actividad_id:
@@ -333,48 +294,6 @@ elif actividad_id:
 
         masa_total = peso_ciclista + peso_bici
         procesar(distancia, elevacion, masa_total)
-        # === OPCIONES EXTRAS DE CÁLCULO PERSONALIZADO ===
-st.markdown("---")
-st.subheader("🧪 Cálculo personalizado")
-
-colA, colB = st.columns(2)
-
-with colA:
-    potencia_personal = st.number_input("🔢 Ingresa potencia (watts)", min_value=50, max_value=1500, step=10, value=250)
-
-with colB:
-    tiempo_seg_personal = st.text_input("⏱️ Tiempo (formato mm o mm:ss) para calcular vatios", placeholder="Ej: 12:30")
-
-if potencia_personal and distancia and elevacion:
-    pendiente = elevacion / distancia if distancia else 0
-
-    def buscar_velocidad(p):
-        v = 1.0
-        for _ in range(1000):
-            total = masa_total * g * pendiente * v + masa_total * g * Crr * v + 0.5 * rho * CdA * v**3
-            error = p - total
-            if abs(error) < 0.1:
-                return v
-            v += error / 200
-        return v
-
-    velocidad = buscar_velocidad(potencia_personal)
-    tiempo_total_s = int(distancia / velocidad)
-    min_extra = tiempo_total_s // 60
-    seg_extra = tiempo_total_s % 60
-    st.success(f"⏱️ Con **{potencia_personal}w**, tardarías aprox. **{min_extra} min {seg_extra} seg**")
-
-if tiempo_seg_personal:
-    try:
-        partes = tiempo_seg_personal.strip().split(":")
-        minutos = int(partes[0])
-        segundos = int(partes[1]) if len(partes) > 1 else 0
-        tiempo_s = minutos * 60 + segundos
-        potencia_estim = estimar_potencia(distancia, elevacion, tiempo_s, masa_total)
-        st.success(f"⚡ Se estima que necesitaste aprox. **{potencia_estim:.0f}w** para ese tiempo")
-    except:
-        st.error("⚠️ Tiempo mal escrito. Usa el formato mm o mm:ss")
-
 
 # === PERFIL DEL SEGMENTO ===
 if gpx_file or (actividad_id and 'seleccionado' in locals()):
