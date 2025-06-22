@@ -167,67 +167,68 @@ def procesar(dist, elev, masa):
     dist_km = dist / 1000
     st.markdown(f"📏 **Distancia:** {dist_km:.2f} km")
     st.markdown(f"🧗 **Desnivel:** {elev:.0f} m")
-    
+
     if tiempo_objetivo:
-    try:
-        partes = tiempo_objetivo.strip().split(":")
-        minutos = int(partes[0])
-        segundos = int(partes[1]) if len(partes) > 1 else 0
-        tiempo_s = minutos * 60 + segundos
-        potencia = estimar_potencia(dist, elev, tiempo_s, masa)
-        wkg = potencia / peso_ciclista
-        peso_obj = ftp / wkg
+        try:
+            partes = tiempo_objetivo.strip().split(":")
+            minutos = int(partes[0])
+            segundos = int(partes[1]) if len(partes) > 1 else 0
+            tiempo_s = minutos * 60 + segundos
+            potencia = estimar_potencia(dist, elev, tiempo_s, masa)
+            wkg = potencia / peso_ciclista
+            peso_obj = ftp / wkg
+            st.markdown("---")
+            st.subheader("📊 Resultado estimado")
+            st.success(f"⚡ Para lograrlo necesitas aprox. **{potencia:.0f}w**")
+            st.info(f"📈 Eso equivale a **{wkg:.2f} w/kg**")
+            st.warning(f"⚖️ Peso necesario con tu FTP: **{peso_obj:.1f} kg**")
+        except:
+            st.error("⚠️ Tiempo mal escrito. Usa mm o mm:ss")
+
+    elif potencia_objetivo > 0:
+        pendiente = elev / dist if dist != 0 else 0
+
+        def buscar_velocidad(p):
+            v = 1.0
+            for _ in range(1000):
+                total = masa * g * pendiente * v + masa * g * Crr * v + 0.5 * rho * CdA * v**3
+                error = p - total
+                if abs(error) < 0.1:
+                    return v
+                v += error / 200
+            return v
+
+        v = buscar_velocidad(potencia_objetivo)
+        tiempo_seg = int(dist / v)
+        minutos = tiempo_seg // 60
+        segundos = tiempo_seg % 60
+
         st.markdown("---")
         st.subheader("📊 Resultado estimado")
-        st.success(f"⚡ Para lograrlo necesitas aprox. **{potencia:.0f}w**")
-        st.info(f"📈 Eso equivale a **{wkg:.2f} w/kg**")
-        st.warning(f"⚖️ Peso necesario con tu FTP: **{peso_obj:.1f} kg**")
-    except:
-        st.error("⚠️ Tiempo mal escrito. Usa mm o mm:ss")
-elif potencia_objetivo > 0:
-    pendiente = elev / dist if dist != 0 else 0
+        st.success(f"⏱️ Con **{potencia_objetivo:.0f}w**, tardarías aprox. **{minutos} min {segundos} seg**")
 
-    def buscar_velocidad(p):
-        v = 1.0
-        for _ in range(1000):
-            total = masa * g * pendiente * v + masa * g * Crr * v + 0.5 * rho * CdA * v**3
-            error = p - total
-            if abs(error) < 0.1:
-                return v
-            v += error / 200
-        return v
+    else:
+        potencia = ftp * 0.9
+        pendiente = elev / dist if dist != 0 else 0
 
-    v = buscar_velocidad(potencia_objetivo)
-    tiempo_seg = int(dist / v)
-    minutos = tiempo_seg // 60
-    segundos = tiempo_seg % 60
+        def buscar_velocidad(p):
+            v = 1.0
+            for _ in range(1000):
+                total = masa * g * pendiente * v + masa * g * Crr * v + 0.5 * rho * CdA * v**3
+                error = p - total
+                if abs(error) < 0.1:
+                    return v
+                v += error / 200
+            return v
 
-    st.markdown("---")
-    st.subheader("📊 Resultado estimado")
-    st.success(f"⏱️ Con **{potencia_objetivo:.0f}w**, tardarías aprox. **{minutos} min {segundos} seg**")
-else:
-    potencia = ftp * 0.9
-    pendiente = elev / dist if dist != 0 else 0
+        v = buscar_velocidad(potencia)
+        tiempo_seg = int(dist / v)
+        minutos = tiempo_seg // 60
+        segundos = tiempo_seg % 60
 
-    def buscar_velocidad(p):
-        v = 1.0
-        for _ in range(1000):
-            total = masa * g * pendiente * v + masa * g * Crr * v + 0.5 * rho * CdA * v**3
-            error = p - total
-            if abs(error) < 0.1:
-                return v
-            v += error / 200
-        return v
-
-    v = buscar_velocidad(potencia)
-    tiempo_seg = int(dist / v)
-    minutos = tiempo_seg // 60
-    segundos = tiempo_seg % 60
-
-    st.markdown("---")
-    st.subheader("📊 Resultado estimado")
-    st.success(f"⏱️ Estimando que mantienes el 90% de tu FTP (**{potencia:.0f}w**), tardarías aprox. **{minutos} min {segundos} seg**")
-
+        st.markdown("---")
+        st.subheader("📊 Resultado estimado")
+        st.success(f"⏱️ Estimando que mantienes el 90% de tu FTP (**{potencia:.0f}w**), tardarías aprox. **{minutos} min {segundos} seg**")
 
 # === PROCESAMIENTO DE GPX ===
 if gpx_file:
