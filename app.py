@@ -15,42 +15,35 @@ from strava_utils import (
 )
 
 # === CONFIGURACIÓN GENERAL ===
-st.set_page_config(page_title="Calculadora Rompe KOM's 🚴‍♂️", layout="centered")
+st.set_page_config(page_title="Calculadora de Segmentos 🚴‍♂️", layout="centered")
 
-# === CARGAR LOGO EN BASE64 ===
-def cargar_logo(path):
-    with open(path, "rb") as f:
-        return base64.b64encode(f.read()).decode()
-
-logo_base64 = cargar_logo("logo_light.png")  # Usa un solo logo para simplificar
-
-# === CABECERA CON LOGO Y NOMBRE ===
-st.markdown("<br>", unsafe_allow_html=True)
-col1, col2 = st.columns([6, 1])
+# Mostrar el nombre y logo
+col1, col2 = st.columns([4, 1])
 with col1:
     st.markdown("## 🔥 CALCULADORA ROMPE KOM'S")
-    st.caption("Analiza tus segmentos favoritos usando tu FTP, peso y tipo de bici.")
+    st.markdown("Analiza tus segmentos favoritos usando tu FTP, peso y tipo de bici.")
 with col2:
-    st.markdown(f"""
-        <img src="data:image/png;base64,{logo_base64}" style="max-width: 80px; margin-top: 0.5rem;">
-    """, unsafe_allow_html=True)
+    st.image("logo_yob.png", width=100)  # asegúrate que logo_yob.png esté en la carpeta raíz
 
-# === AUTENTICACIÓN STRAVA ===
-with st.sidebar:
-    if sesion_iniciada():
-        datos = obtener_datos_atleta()
-        if datos:
-            col1, col2 = st.columns([1, 3])
-            col1.image(datos["profile"], width=50)
-            col2.markdown(f"**{datos['firstname']} {datos['lastname']}**")
+# Manejo de sesión
+if not sesion_iniciada() and os.path.exists("strava_token.json"):
+    st.rerun()
 
-            if st.button("🔓 Cerrar sesión"):
-                cerrar_sesion_strava()
-                st.rerun()
-    else:
-        if st.button("🔐 Iniciar sesión con Strava"):
-            iniciar_sesion_strava()
-            st.info("✅ Se abrió una ventana. Vuelve aquí luego de autorizar.")
+if sesion_iniciada():
+    datos = obtener_datos_atleta()
+    if datos:
+        col1, col2 = st.columns([1, 6])
+        col1.image(datos["profile"], width=50)
+        col2.markdown(f"**{datos['firstname']} {datos['lastname']}**")
+
+        if st.button("🔓 Cerrar sesión"):
+            cerrar_sesion_strava()
+            st.rerun()
+else:
+    st.warning("🔐 No has iniciado sesión con Strava")
+    if st.button("Iniciar sesión con Strava"):
+        iniciar_sesion_strava()
+        st.info("✅ Autenticación iniciada. Se abrió una nueva pestaña. Luego regresa y actualiza la app si es necesario.")
 
 # === MODO DE ENTRADA ===
 modo = st.radio("Selecciona el modo de entrada:", ["📂 Archivo GPX", "🌐 Actividad de Strava"], horizontal=True)
