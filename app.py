@@ -189,10 +189,12 @@ if gpx_file:
     elevaciones = []
     dist_acumulada = 0
     for i in range(1, len(puntos)):
-        d = puntos[i-1]._3d(puntos[i])
-        dist_acumulada += d
-        distancias.append(dist_acumulada / 1000)
-        elevaciones.append(puntos[i].elevation)
+    p1 = puntos[i-1]
+    p2 = puntos[i]
+    d = haversine_distance(p1.latitude, p1.longitude, p1.elevation, p2.latitude, p2.longitude, p2.elevation)
+    dist_acumulada += d
+    distancias.append(dist_acumulada / 1000)
+    elevaciones.append(p2.elevation)
 
     masa_total = peso_ciclista + peso_bici
     graficar(distancias, elevaciones)
