@@ -11,7 +11,6 @@ from urllib.parse import urlencode
 
 from strava_utils import (
     get_segments_from_activity,
-    iniciar_sesion_strava,
     sesion_iniciada,
     cerrar_sesion_strava,
     obtener_datos_atleta,
