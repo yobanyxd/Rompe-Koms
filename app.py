@@ -222,23 +222,29 @@ elif actividad_id:
         masa_total = peso_ciclista + peso_bici
         procesar(distancia, elevacion, masa_total)
 
-        # Mostrar gráfico de elevación
-        st.subheader("📈 Perfil del Segmento")
-        streams = get_streams_for_activity(actividad_id)
-        if streams:
-            d = streams.get("distance", [])
-            a = streams.get("altitude", [])
-            start = seleccionado.get("start_index", 0)
-            end = seleccionado.get("end_index", len(d))
-            if d and a and start is not None and end is not None and end > start:
-                try:
-                    graficar([x / 1000 for x in d[start:end]], a[start:end])
-                except Exception as e:
-                    st.warning(f"⚠️ No se pudo graficar el perfil: {e}")
-            else:
-                st.warning("⚠️ No hay datos suficientes para mostrar el perfil.")
+        # === PERFIL DEL SEGMENTO ===
+st.subheader("📈 Perfil del Segmento")
+
+streams = get_streams_for_activity(actividad_id)
+
+if streams and "distance" in streams and "altitude" in streams:
+    try:
+        d = streams["distance"]
+        a = streams["altitude"]
+        start = seleccionado["start_index"]
+        end = seleccionado["end_index"]
+
+        # Validar que índices estén dentro de rango
+        if start is not None and end is not None and end <= len(d):
+            distancias = [x / 1000 for x in d[start:end]]
+            altitudes = a[start:end]
+            graficar(distancias, altitudes)
         else:
-            st.warning("⚠️ No se pudo obtener el perfil de elevación.")
+            st.warning("⚠️ No se pudo graficar: el índice del segmento está fuera del rango de los datos.")
+    except Exception as e:
+        st.warning(f"⚠️ No se pudo graficar el perfil: {e}")
+else:
+    st.warning("⚠️ No se pudo obtener los datos de altitud y distancia para graficar el perfil.")
 
 # === PIE DE PÁGINA ===
 st.markdown("""---<p style='text-align: center; font-size: 0.8rem;'>🛠️ Desarrollado con cariño por <b>Yobwear</b> — v1.0</p>""", unsafe_allow_html=True)
