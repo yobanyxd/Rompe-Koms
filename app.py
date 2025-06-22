@@ -243,8 +243,7 @@ if gpx_file:
         distancias.append(dist_acumulada / 1000)
         elevaciones.append(p2.elevation)
 
-    masa_total = peso_ciclista + peso_bici
-    graficar(distancias, elevaciones)
+    masa_total = peso_ciclista + peso_bici    
     procesar(total_dist, total_elev, masa_total)
 
 # === PROCESAMIENTO DE STRAVA ===
@@ -296,6 +295,9 @@ elif actividad_id:
 # === PERFIL DEL SEGMENTO ===
 if gpx_file or (actividad_id and 'seleccionado' in locals()):
     st.subheader("📈 Perfil del Segmento")
+
+    if gpx_file:
+        graficar(distancias, elevaciones)
 
     # === Si es archivo GPX ya se grafica antes (no repetir aquí) ===
     
