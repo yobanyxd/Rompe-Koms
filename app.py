@@ -58,19 +58,21 @@ with col2:
     st.markdown(logo_html, unsafe_allow_html=True)
 
 query_params = st.query_params
-if "code" in query_params and "token_guardado" not in st.session_state:
+
+# Solo procesa el código una vez para evitar error 'code invalid'
+if "code" in query_params and not st.session_state.get("token_guardado"):
     code = query_params["code"][0]
     data = exchange_code_for_token(code)
+
     if data:
         st.session_state["token_guardado"] = True
         st.success("✅ Autenticación completada. Puedes continuar.")
-        st.rerun()  # Esto ya no causa loops porque hay una bandera
+        st.rerun()
+    else:
+        st.error("❌ Fallo al obtener token. Intenta iniciar sesión nuevamente.")
+        st.stop()
 
-# Evita mensaje de éxito duplicado después del refresh
-if st.session_state.get("autenticado", False):
-    st.session_state.pop("autenticado")
-
-
+# Si ya hay token guardado y archivo existe, entonces sesión iniciada
 if sesion_iniciada():
     datos = obtener_datos_atleta()
     if datos:
@@ -80,10 +82,12 @@ if sesion_iniciada():
 
         if st.sidebar.button("🔓 Cerrar sesión"):
             cerrar_sesion_strava()
+            st.session_state.clear()
             st.rerun()
 else:
     auth_url = get_auth_url()
     st.sidebar.link_button("🔐 Iniciar sesión con Strava", auth_url)
+
 
 modo = st.radio("Selecciona el modo de entrada:", ["📂 Archivo GPX", "🌐 Actividad de Strava"], horizontal=True)
 
