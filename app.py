@@ -3,13 +3,20 @@ import gpxpy
 import math
 import os
 import matplotlib.pyplot as plt
-from gpxpy.geo import haversine_distance
 from urllib.parse import urlparse, parse_qs
 
 from strava_utils import (
+    get_segments_from_activity,
+    sesion_iniciada,
+    cerrar_sesion_strava,
+    obtener_datos_atleta,
+    get_streams_for_activity,
+    intercambiar_codigo_por_token
+)
+
+# ✅ Esta función va aquí, fuera del bloque de imports
 def haversine_distance(lat1, lon1, elev1, lat2, lon2, elev2):
-    # Radio de la Tierra en metros
-    R = 6371000  
+    R = 6371000  # Radio de la Tierra en metros
     phi1 = math.radians(lat1)
     phi2 = math.radians(lat2)
     delta_phi = math.radians(lat2 - lat1)
@@ -18,20 +25,8 @@ def haversine_distance(lat1, lon1, elev1, lat2, lon2, elev2):
     a = math.sin(delta_phi/2)**2 + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda/2)**2
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
     distancia_horizontal = R * c
-
-    # Diferencia de elevación
     delta_elev = elev2 - elev1
-
-    # Distancia 3D
     return math.sqrt(distancia_horizontal**2 + delta_elev**2)
-
-    get_segments_from_activity,
-    sesion_iniciada,
-    cerrar_sesion_strava,
-    obtener_datos_atleta,
-    get_streams_for_activity,
-    intercambiar_codigo_por_token
-)
 
 # === CONFIGURACIÓN GENERAL ===
 st.set_page_config(page_title="Calculadora de Segmentos 🚴‍♂️", layout="centered")
