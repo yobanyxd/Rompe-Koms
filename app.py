@@ -54,15 +54,34 @@ elif st.session_state.last_theme != current_theme:
     st.rerun()
 
 # === CABECERA ===
-logo_path = "logo_dark.png" if st.session_state.last_theme == "dark" else "logo_light.png"
+st.markdown("""
+<style>
+    .logo-container {
+        display: flex;
+        justify-content: flex-end;
+    }
+    .logo-dark {
+        display: none;
+    }
+    @media (prefers-color-scheme: dark) {
+        .logo-light { display: none; }
+        .logo-dark { display: block; }
+    }
+    @media (prefers-color-scheme: light) {
+        .logo-light { display: block; }
+        .logo-dark { display: none; }
+    }
+</style>
 
-col1, col2 = st.columns([4, 1])
-with col1:
-    st.markdown("## 🔥 CALCULADORA ROMPE KOM'S")
-    st.markdown("Analiza tus segmentos favoritos usando tu FTP, peso y tipo de bici.")
-with col2:
-    if os.path.exists(logo_path):
-        st.image(logo_path, width=100)
+<div class="logo-container">
+    <img class="logo-light" src="https://raw.githubusercontent.com/YOBWEAR/assets/main/logo_light.png" width="100">
+    <img class="logo-dark" src="https://raw.githubusercontent.com/YOBWEAR/assets/main/logo_dark.png" width="100">
+</div>
+""", unsafe_allow_html=True)
+
+st.markdown("## 🔥 CALCULADORA ROMPE KOM'S")
+st.markdown("Analiza tus segmentos favoritos usando tu FTP, peso y tipo de bici.")
+
 
 # === MODO DE ENTRADA ===
 modo = st.radio("Selecciona el modo de entrada:", ["📂 Archivo GPX", "🌐 Segmento Strava"], horizontal=True)
