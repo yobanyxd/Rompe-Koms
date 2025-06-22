@@ -15,7 +15,7 @@ from strava_utils import (
     intercambiar_codigo_por_token
 )
 
-# ✅ Esta función va aquí, fuera del bloque de imports
+# ✅ Función para calcular distancia 3D entre dos puntos GPX
 def haversine_distance(lat1, lon1, elev1, lat2, lon2, elev2):
     R = 6371000  # Radio de la Tierra en metros
     phi1 = math.radians(lat1)
@@ -54,8 +54,8 @@ elif st.session_state.last_theme != current_theme:
     st.rerun()
 
 # === CABECERA ===
-tema = st.get_option("theme.base")
-logo_path = "logo_dark.png" if tema == "dark" else "logo_light.png"
+logo_path = "logo_dark.png" if st.session_state.last_theme == "dark" else "logo_light.png"
+
 col1, col2 = st.columns([4, 1])
 with col1:
     st.markdown("## 🔥 CALCULADORA ROMPE KOM'S")
