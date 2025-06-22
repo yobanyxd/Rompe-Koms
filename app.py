@@ -11,8 +11,19 @@ from strava_utils import (
     sesion_iniciada,
     cerrar_sesion_strava,
     obtener_datos_atleta,
-    get_streams_for_activity
+    get_streams_for_activity,
+    intercambiar_codigo_por_token  # asegúrate de importar esto también
 )
+
+# === CAPTURAR CÓDIGO DE STRAVA SI REGRESA CON ?code= ===
+query_params = st.experimental_get_query_params()
+if "code" in query_params:
+    code = query_params["code"][0]
+    st.session_state["strava_code"] = code
+    intercambiar_codigo_por_token(code)
+    st.success("✅ ¡Sesión iniciada correctamente!")
+    st.experimental_set_query_params()  # Limpia la URL
+    st.rerun()
 
 # === CONFIGURACIÓN GENERAL ===
 st.set_page_config(page_title="Calculadora de Segmentos 🚴‍♂️", layout="centered")
