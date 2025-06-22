@@ -189,29 +189,43 @@ elif actividad_id:
             (s['segment']['distance'] / (ftp * 0.9)),
             masa_total
         ))
+
         st.success(f"✅ {len(segmentos)} segmentos encontrados.")
+
         opciones = []
+        segmentos_info = []
         for s in segmentos:
             dist = s['segment']['distance']
             elev = s['segment']['elevation_high'] - s['segment']['elevation_low']
             grad = elev / dist if dist else 0
             color = "🟣" if grad > 0.08 else "🔴" if grad > 0.06 else "🟠" if grad > 0.04 else "🟡" if grad > 0.02 else "🟢"
-            opciones.append(f"{color} {s['segment']['name']} ({dist/1000:.2f} km)")
-        selected = st.selectbox("Elige un segmento:", opciones)
-        seleccionado = segmentos[opciones.index(selected)]
+            nombre = f"{color} {s['segment']['name']} ({dist/1000:.2f} km)"
+            opciones.append(nombre)
+            segmentos_info.append((s, dist, elev))
 
-        if seleccionado:
-            distancia = seleccionado['segment']['distance']
-            elevacion = seleccionado['segment']['elevation_high'] - seleccionado['segment']['elevation_low']
-            procesar(distancia, elevacion, masa_total)
-            st.subheader("📈 Perfil del Segmento")
-            streams = get_streams_for_activity(actividad_id)
-            if streams and "distance" in streams and "altitude" in streams:
-                d = streams["distance"]
-                a = streams["altitude"]
-                graficar([x / 1000 for x in d[seleccionado["start_index"]:seleccionado["end_index"]]], a[seleccionado["start_index"]:seleccionado["end_index"]])
+        seleccionado_idx = st.selectbox("Elige un segmento:", range(len(opciones)), format_func=lambda i: opciones[i])
+        seleccionado, distancia, elevacion = segmentos_info[seleccionado_idx]
+
+        st.markdown(f"📏 **Distancia:** {distancia / 1000:.2f} km")
+        st.markdown(f"🧗 **Desnivel:** {elevacion:.0f} m")
+
+        masa_total = peso_ciclista + peso_bici
+        procesar(distancia, elevacion, masa_total)
+
+        # Mostrar gráfico de elevación
+        st.subheader("📈 Perfil del Segmento")
+        streams = get_streams_for_activity(actividad_id)
+        if streams and "distance" in streams and "altitude" in streams:
+            d = streams["distance"]
+            a = streams["altitude"]
+            start = seleccionado["start_index"]
+            end = seleccionado["end_index"]
+            if start is not None and end is not None:
+                graficar([x / 1000 for x in d[start:end]], a[start:end])
             else:
-                st.warning("⚠️ No se pudo obtener el perfil de elevación.")
+                st.warning("⚠️ No se pudo determinar el perfil del segmento.")
+        else:
+            st.warning("⚠️ No se pudo obtener el perfil de elevación.")
 
 # === PIE DE PÁGINA ===
 st.markdown("""---<p style='text-align: center; font-size: 0.8rem;'>🛠️ Desarrollado con cariño por <b>Yobwear</b> — v1.0</p>""", unsafe_allow_html=True)
