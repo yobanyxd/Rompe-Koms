@@ -1,7 +1,9 @@
+
 import streamlit as st
 import gpxpy
 import os
 import matplotlib.pyplot as plt
+
 from strava_utils import (
     get_segments_from_activity,
     iniciar_sesion_strava,
@@ -15,18 +17,19 @@ from strava_utils import (
 # === CONFIGURACIÓN GENERAL ===
 st.set_page_config(page_title="Calculadora de Segmentos 🚴‍♂️", layout="centered")
 
-# Manejo del retorno de Strava
+# === MANEJO DEL RETORNO DE STRAVA ===
 query_params = st.query_params
 code = query_params.get("code")
 if code:
     token_data = intercambiar_codigo_por_token(code)
     if token_data:
         st.success("✅ ¡Sesión iniciada correctamente!")
+        st.experimental_set_query_params()  # Limpia 'code' de la URL
         st.rerun()
     else:
         st.error("❌ Hubo un problema al iniciar sesión con Strava.")
 
-# === ENCABEZADO ===
+# === HEADER Y LOGO ===
 tema = st.get_option("theme.base")
 logo_path = "logo_dark.png" if tema == "dark" else "logo_light.png"
 col1, col2 = st.columns([4, 1])
@@ -38,16 +41,15 @@ with col2:
         st.image(logo_path, width=100)
 
 # === MODO DE ENTRADA ===
-modo = st.radio("Selecciona el modo de entrada:", ["📂 Archivo GPX", "🛰️ Segmento Strava"], horizontal=True)
+modo = st.radio("Selecciona el modo de entrada:", ["📂 Archivo GPX", "🌍 Segmento Strava"], horizontal=True)
 
-# === ARCHIVO GPX O STRAVA ===
+# === ARCHIVO GPX O LINK STRAVA ===
 gpx_file = None
 actividad_id = None
-
 if modo == "📂 Archivo GPX":
     gpx_file = st.file_uploader("📁 Sube tu archivo GPX", type=["gpx"])
-elif modo == "🛰️ Segmento Strava":
-    usar_strava_login = st.checkbox("🔐 Iniciar sesión con Strava", value=False)
+elif modo == "🌍 Segmento Strava":
+    usar_strava_login = st.checkbox("🔐 Iniciar sesión con Strava (opcional)", value=False)
     if usar_strava_login:
         if sesion_iniciada():
             datos = obtener_datos_atleta()
@@ -59,34 +61,39 @@ elif modo == "🛰️ Segmento Strava":
                     cerrar_sesion_strava()
                     st.rerun()
             else:
-                st.warning("⚠️ Error al obtener datos del atleta.")
+                st.warning("⚠️ Error al obtener datos. Intenta cerrar sesión.")
                 if st.button("🔓 Forzar cierre de sesión"):
                     cerrar_sesion_strava()
                     st.rerun()
         else:
-            st.markdown(
-                '<a href="https://www.strava.com/oauth/authorize?client_id=141324&response_type=code&redirect_uri=https://rompekoms.streamlit.app/&approval_prompt=auto&scope=read,activity:read" target="_self">🔗 Iniciar sesión con Strava</a>',
-                unsafe_allow_html=True
-            )
+            redirect_uri = "https://rompekoms.streamlit.app/"
+            auth_url = f"https://www.strava.com/oauth/authorize?client_id=141324&response_type=code&redirect_uri={redirect_uri}&approval_prompt=auto&scope=read,activity:read"
+            st.markdown(f'<a href="{auth_url}" target="_self">🔗 Iniciar sesión con Strava</a>', unsafe_allow_html=True)
 
     actividad_url = st.text_input("🔗 Pega el link o ID de una actividad pública de Strava")
     if actividad_url:
-        if "activities" in actividad_url:
-            actividad_id = actividad_url.split("/")[-1]
-        else:
-            actividad_id = actividad_url
+        try:
+            if "activities" in actividad_url:
+                actividad_id = actividad_url.split("/")[-1]
+            else:
+                actividad_id = actividad_url
+        except:
+            st.error("❌ Link inválido")
 
 # === DATOS DEL USUARIO ===
 col1, col2 = st.columns(2)
 peso_ciclista = col1.number_input("🏋️ Peso del ciclista (kg)", value=62.0)
-peso_bici = col2.number_input("🚲 Peso bici + equipo (kg)", value=8.0)
+peso_bici = col2.number_input("🍒 Peso bici + equipo (kg)", value=8.0)
 altura = st.number_input("📏 Altura (cm)", value=170)
 
-tipo_bici = st.selectbox("Tipo de bicicleta", ["🚴‍♂️ Ruta", "🛞 Triatlón/Cabrita", "🚵‍♀️ MTB", "🚲 Urbana"])
+tipo_bici = st.selectbox("Tipo de bicicleta", options=[
+    "🚴‍♂️ Ruta", "🛞 Triatlón/Cabrita", "🚵‍♀️ MTB", "🚲 Urbana"
+])
+
 ftp = st.number_input("⚡ Tu FTP (watts)", value=275)
 tiempo_objetivo = st.text_input("🎯 Tiempo objetivo (opcional, formato mm o mm:ss)", value="")
 
-# === PARÁMETROS ===
+# === PARÁMETROS Y FUNCIONES ===
 bicis = {
     "🚴‍♂️ Ruta": {"CdA": 0.32, "Crr": 0.004},
     "🛞 Triatlón/Cabrita": {"CdA": 0.25, "Crr": 0.0035},
@@ -98,9 +105,8 @@ Crr = bicis[tipo_bici]["Crr"]
 rho = 1.225
 g = 9.81
 
-# === FUNCIONES ===
 def estimar_potencia(dist, elev, tiempo_s, masa):
-    pendiente = elev / dist if dist else 0
+    pendiente = elev / dist if dist != 0 else 0
     v = dist / tiempo_s
     return masa * g * pendiente * v + masa * g * Crr * v + 0.5 * rho * CdA * v**3
 
@@ -113,7 +119,8 @@ def graficar(distancias, elevaciones):
     st.pyplot(plt)
 
 def procesar(dist, elev, masa):
-    st.markdown(f"📏 **Distancia:** {dist/1000:.2f} km")
+    dist_km = dist / 1000
+    st.markdown(f"📏 **Distancia:** {dist_km:.2f} km")
     st.markdown(f"🧗 **Desnivel:** {elev:.0f} m")
     if tiempo_objetivo:
         try:
@@ -130,10 +137,10 @@ def procesar(dist, elev, masa):
             st.info(f"📈 Eso equivale a **{wkg:.2f} w/kg**")
             st.warning(f"⚖️ Peso necesario con tu FTP: **{peso_obj:.1f} kg**")
         except:
-            st.error("⚠️ Tiempo mal escrito. Usa `mm` o `mm:ss`")
+            st.error("⚠️ Tiempo mal escrito. Usa mm o mm:ss")
     else:
         potencia = ftp * 0.9
-        pendiente = elev / dist if dist else 0
+        pendiente = elev / dist if dist != 0 else 0
         def buscar_velocidad(p):
             v = 1.0
             for _ in range(1000):
@@ -214,8 +221,5 @@ elif actividad_id:
             else:
                 st.warning("⚠️ No se pudo obtener el perfil de elevación.")
 
-# === FOOTER ===
-st.markdown("""
----
-<p style='text-align: center; font-size: 0.8rem;'>🛠️ Desarrollado con cariño por <b>Yobwear</b> — v1.0</p>
-""", unsafe_allow_html=True)
+# === PIE DE PÁGINA ===
+st.markdown("""---<p style='text-align: center; font-size: 0.8rem;'>🛠️ Desarrollado con cariño por <b>Yobwear</b> — v1.0</p>""", unsafe_allow_html=True)
