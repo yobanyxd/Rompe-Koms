@@ -167,6 +167,7 @@ def procesar(dist, elev, masa):
     dist_km = dist / 1000
     st.markdown(f"📏 **Distancia:** {dist_km:.2f} km")
     st.markdown(f"🧗 **Desnivel:** {elev:.0f} m")
+    
     if tiempo_objetivo:
         try:
             partes = tiempo_objetivo.strip().split(":")
@@ -186,6 +187,7 @@ def procesar(dist, elev, masa):
     else:
         potencia = ftp * 0.9
         pendiente = elev / dist if dist != 0 else 0
+
         def buscar_velocidad(p):
             v = 1.0
             for _ in range(1000):
@@ -195,11 +197,16 @@ def procesar(dist, elev, masa):
                     return v
                 v += error / 200
             return v
+
         v = buscar_velocidad(potencia)
-        tiempo_min = (dist / v) / 60
+        tiempo_seg = int(dist / v)  # Tiempo en segundos
+        minutos = tiempo_seg // 60
+        segundos = tiempo_seg % 60
+
         st.markdown("---")
         st.subheader("📊 Resultado estimado")
-        st.success(f"⏱️ Con **{potencia:.0f}w**, tardarías aprox. **{tiempo_min:.1f} minutos**")
+        st.success(f"⏱️ Con **{potencia:.0f}w**, tardarías aprox. **{minutos} min {segundos} seg**")
+
 
 # === PROCESAMIENTO DE GPX ===
 if gpx_file:
