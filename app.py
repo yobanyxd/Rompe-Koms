@@ -53,24 +53,44 @@ elif st.session_state.last_theme != current_theme:
     time.sleep(0.5)
     st.rerun()
 
-# === CABECERA ===
+# === CABECERA CON LOGO QUE SE ADAPTA AL TEMA Y BIEN POSICIONADO ===
 st.markdown("""
 <style>
     .logo-container {
         display: flex;
         justify-content: flex-end;
         align-items: center;
+        margin-top: 10px;
+        height: 100%;
     }
-    .logo-light {
+
+    .logo-dark {
         display: none;
     }
-    @media (prefers-color-scheme: light) {
-        .logo-dark { display: none; }
-        .logo-light { display: block; }
-    }
+
     @media (prefers-color-scheme: dark) {
-        .logo-dark { display: block; }
-        .logo-light { display: none; }
+        .logo-dark {
+            display: block;
+        }
+        .logo-light {
+            display: none;
+        }
+    }
+
+    @media (prefers-color-scheme: light) {
+        .logo-dark {
+            display: none;
+        }
+        .logo-light {
+            display: block;
+        }
+    }
+
+    @media (max-width: 600px) {
+        .logo-container {
+            justify-content: center;
+            margin-top: 1rem;
+        }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -80,12 +100,15 @@ with col1:
     st.markdown("## 🔥 CALCULADORA ROMPE KOM'S")
     st.markdown("Analiza tus segmentos favoritos usando tu FTP, peso y tipo de bici.")
 with col2:
-    st.markdown("""
+    st.markdown(
+        """
         <div class="logo-container">
-            <img class="logo-light" src="https://raw.githubusercontent.com/yobanyxd/Rompe-Koms/main/logo_light.png" width="100">
-            <img class="logo-dark" src="https://raw.githubusercontent.com/yobanyxd/Rompe-Koms/main/logo_dark.png" width="100">
+            <img class="logo-light" src="https://raw.githubusercontent.com/yobanyxd/Rompe-Koms/main/logo_dark.png" width="100">
+            <img class="logo-dark" src="https://raw.githubusercontent.com/yobanyxd/Rompe-Koms/main/logo_light.png" width="100">
         </div>
-    """, unsafe_allow_html=True)
+        """,
+        unsafe_allow_html=True
+    )
 
 # === MODO DE ENTRADA ===
 modo = st.radio("Selecciona el modo de entrada:", ["📂 Archivo GPX", "🌐 Segmento Strava"], horizontal=True)
