@@ -192,6 +192,16 @@ elif actividad_id:
 
         st.success(f"✅ {len(segmentos)} segmentos encontrados.")
 
+        # Mostrar leyenda de dificultad
+        st.markdown("""
+        **Leyenda de dificultad por pendiente media:**
+        - 🟢 Fácil (0% - 2%)
+        - 🟡 Moderado (2% - 4%)
+        - 🟠 Intermedio (4% - 6%)
+        - 🔴 Duro (6% - 8%)
+        - 🟣 Muy duro (8%+)
+        """)
+
         opciones = []
         segmentos_info = []
         for s in segmentos:
@@ -215,15 +225,18 @@ elif actividad_id:
         # Mostrar gráfico de elevación
         st.subheader("📈 Perfil del Segmento")
         streams = get_streams_for_activity(actividad_id)
-        if streams and "distance" in streams and "altitude" in streams:
-            d = streams["distance"]
-            a = streams["altitude"]
-            start = seleccionado["start_index"]
-            end = seleccionado["end_index"]
-            if start is not None and end is not None:
-                graficar([x / 1000 for x in d[start:end]], a[start:end])
+        if streams:
+            d = streams.get("distance", [])
+            a = streams.get("altitude", [])
+            start = seleccionado.get("start_index", 0)
+            end = seleccionado.get("end_index", len(d))
+            if d and a and start is not None and end is not None and end > start:
+                try:
+                    graficar([x / 1000 for x in d[start:end]], a[start:end])
+                except Exception as e:
+                    st.warning(f"⚠️ No se pudo graficar el perfil: {e}")
             else:
-                st.warning("⚠️ No se pudo determinar el perfil del segmento.")
+                st.warning("⚠️ No hay datos suficientes para mostrar el perfil.")
         else:
             st.warning("⚠️ No se pudo obtener el perfil de elevación.")
 
