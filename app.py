@@ -222,29 +222,33 @@ elif actividad_id:
         masa_total = peso_ciclista + peso_bici
         procesar(distancia, elevacion, masa_total)
 
-        # === PERFIL DEL SEGMENTO ===
-st.subheader("📈 Perfil del Segmento")
+# === PERFIL DEL SEGMENTO ===
+if gpx_file or (actividad_id and 'seleccionado' in locals()):
+    st.subheader("📈 Perfil del Segmento")
 
-streams = get_streams_for_activity(actividad_id)
+    # === Si es archivo GPX ya se grafica antes (no repetir aquí) ===
+    
+    # === Si es desde Strava ===
+    if actividad_id and 'seleccionado' in locals():
+        streams = get_streams_for_activity(actividad_id)
 
-if streams and "distance" in streams and "altitude" in streams:
-    try:
-        d = streams["distance"]["data"]
-        a = streams["altitude"]["data"]
-        start = seleccionado["start_index"]
-        end = seleccionado["end_index"]
+        if streams and "distance" in streams and "altitude" in streams:
+            try:
+                d = streams["distance"]["data"]
+                a = streams["altitude"]["data"]
+                start = seleccionado["start_index"]
+                end = seleccionado["end_index"]
 
-        # Validar que índices estén dentro de rango
-        if start is not None and end is not None and end <= len(d):
-            distancias = [x / 1000 for x in d[start:end]]
-            altitudes = a[start:end]
-            graficar(distancias, altitudes)
+                if start is not None and end is not None and end <= len(d):
+                    distancias = [x / 1000 for x in d[start:end]]
+                    altitudes = a[start:end]
+                    graficar(distancias, altitudes)
+                else:
+                    st.warning("⚠️ No se pudo graficar: el índice del segmento está fuera del rango de los datos.")
+            except Exception as e:
+                st.warning(f"⚠️ No se pudo graficar el perfil: {e}")
         else:
-            st.warning("⚠️ No se pudo graficar: el índice del segmento está fuera del rango de los datos.")
-    except Exception as e:
-        st.warning(f"⚠️ No se pudo graficar el perfil: {e}")
-else:
-    st.warning("⚠️ No se pudo obtener los datos de altitud y distancia para graficar el perfil.")
+            st.warning("⚠️ No se pudo obtener los datos de altitud y distancia para graficar el perfil.")
 
 # === PIE DE PÁGINA ===
 st.markdown("""---<p style='text-align: center; font-size: 0.8rem;'>🛠️ Desarrollado con cariño por <b>Yobwear</b> — v1.0</p>""", unsafe_allow_html=True)
