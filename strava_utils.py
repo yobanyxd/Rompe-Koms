@@ -1,6 +1,8 @@
 import requests
 import os
 import json
+import webbrowser
+import urllib.parse
 
 # CONFIG DE STRAVA
 CLIENT_ID = "141324"
@@ -76,3 +78,15 @@ def get_streams_for_segment(segment_id):
     params = {"keys": "distance,altitude", "key_by_type": "true"}
     response = requests.get(url, headers=headers, params=params)
     return response.json() if response.status_code == 200 else None
+
+def iniciar_sesion_strava():
+    url = "https://www.strava.com/oauth/authorize"
+    params = {
+        "client_id": CLIENT_ID,
+        "response_type": "code",
+        "redirect_uri": REDIRECT_URI,
+        "scope": "read,activity:read_all",
+        "approval_prompt": "auto"
+    }
+    full_url = f"{url}?{urllib.parse.urlencode(params)}"
+    webbrowser.open(full_url)
