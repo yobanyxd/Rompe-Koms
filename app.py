@@ -163,7 +163,7 @@ def graficar(distancias, elevaciones):
     plt.title("Perfil del Segmento")
     st.pyplot(plt)
 
-def procesar(dist, elev, masa):
+def procesar(dist, elev, masa, tiempo_objetivo="", ftp=0, peso_ciclista=0, potencia_objetivo=0):
     dist_km = dist / 1000
     st.markdown(f"📏 **Distancia:** {dist_km:.2f} km")
     st.markdown(f"🧗 **Desnivel:** {elev:.0f} m")
