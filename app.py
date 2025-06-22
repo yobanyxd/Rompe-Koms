@@ -1,12 +1,12 @@
-
 import streamlit as st
 import gpxpy
+import math
 import os
 import matplotlib.pyplot as plt
+from urllib.parse import urlparse, parse_qs
 
 from strava_utils import (
     get_segments_from_activity,
-    iniciar_sesion_strava,
     sesion_iniciada,
     cerrar_sesion_strava,
     obtener_datos_atleta,
@@ -17,19 +17,19 @@ from strava_utils import (
 # === CONFIGURACIÓN GENERAL ===
 st.set_page_config(page_title="Calculadora de Segmentos 🚴‍♂️", layout="centered")
 
-# === MANEJO DEL RETORNO DE STRAVA ===
+# === AUTENTICACIÓN STRAVA ===
 query_params = st.query_params
 code = query_params.get("code")
 if code:
     token_data = intercambiar_codigo_por_token(code)
     if token_data:
         st.success("✅ ¡Sesión iniciada correctamente!")
-        st.experimental_set_query_params()  # Limpia 'code' de la URL
+        st.query_params.clear()
         st.rerun()
     else:
-        st.error("❌ Hubo un problema al iniciar sesión con Strava.")
+        st.error("❌ Error al obtener token de Strava.")
 
-# === HEADER Y LOGO ===
+# === CABECERA ===
 tema = st.get_option("theme.base")
 logo_path = "logo_dark.png" if tema == "dark" else "logo_light.png"
 col1, col2 = st.columns([4, 1])
@@ -41,35 +41,32 @@ with col2:
         st.image(logo_path, width=100)
 
 # === MODO DE ENTRADA ===
-modo = st.radio("Selecciona el modo de entrada:", ["📂 Archivo GPX", "🌍 Segmento Strava"], horizontal=True)
+modo = st.radio("Selecciona el modo de entrada:", ["📂 Archivo GPX", "🌐 Segmento Strava"], horizontal=True)
+
+# === AUTENTICACIÓN STRAVA (solo si eligen modo STRAVA) ===
+actividad_id = None
+if modo == "🌐 Segmento Strava":
+    if not sesion_iniciada():
+        client_id = "141324"
+        redirect_uri = "https://rompekoms.streamlit.app/"
+        scope = "read,activity:read_all"
+        auth_url = f"https://www.strava.com/oauth/authorize?client_id={client_id}&response_type=code&redirect_uri={redirect_uri}&approval_prompt=auto&scope={scope}"
+        st.markdown(f"[🔐 Iniciar sesión con Strava]({auth_url})", unsafe_allow_html=True)
+    else:
+        datos = obtener_datos_atleta()
+        if datos:
+            col1, col2 = st.columns([1, 6])
+            col1.image(datos["profile"], width=50)
+            col2.markdown(f"**{datos['firstname']} {datos['lastname']}**")
+            if st.button("🔓 Cerrar sesión"):
+                cerrar_sesion_strava()
+                st.rerun()
 
 # === ARCHIVO GPX O LINK STRAVA ===
 gpx_file = None
-actividad_id = None
 if modo == "📂 Archivo GPX":
     gpx_file = st.file_uploader("📁 Sube tu archivo GPX", type=["gpx"])
-elif modo == "🌍 Segmento Strava":
-    usar_strava_login = st.checkbox("🔐 Iniciar sesión con Strava (opcional)", value=False)
-    if usar_strava_login:
-        if sesion_iniciada():
-            datos = obtener_datos_atleta()
-            if datos:
-                col1, col2 = st.columns([1, 6])
-                col1.image(datos["profile"], width=50)
-                col2.markdown(f"**{datos['firstname']} {datos['lastname']}**")
-                if st.button("🔓 Cerrar sesión"):
-                    cerrar_sesion_strava()
-                    st.rerun()
-            else:
-                st.warning("⚠️ Error al obtener datos. Intenta cerrar sesión.")
-                if st.button("🔓 Forzar cierre de sesión"):
-                    cerrar_sesion_strava()
-                    st.rerun()
-        else:
-            redirect_uri = "https://rompekoms.streamlit.app/"
-            auth_url = f"https://www.strava.com/oauth/authorize?client_id=141324&response_type=code&redirect_uri={redirect_uri}&approval_prompt=auto&scope=read,activity:read"
-            st.markdown(f'<a href="{auth_url}" target="_self">🔗 Iniciar sesión con Strava</a>', unsafe_allow_html=True)
-
+elif modo == "🌐 Segmento Strava":
     actividad_url = st.text_input("🔗 Pega el link o ID de una actividad pública de Strava")
     if actividad_url:
         try:
@@ -83,17 +80,13 @@ elif modo == "🌍 Segmento Strava":
 # === DATOS DEL USUARIO ===
 col1, col2 = st.columns(2)
 peso_ciclista = col1.number_input("🏋️ Peso del ciclista (kg)", value=62.0)
-peso_bici = col2.number_input("🍒 Peso bici + equipo (kg)", value=8.0)
+peso_bici = col2.number_input("🚲 Peso bici + equipo (kg)", value=8.0)
 altura = st.number_input("📏 Altura (cm)", value=170)
-
-tipo_bici = st.selectbox("Tipo de bicicleta", options=[
-    "🚴‍♂️ Ruta", "🛞 Triatlón/Cabrita", "🚵‍♀️ MTB", "🚲 Urbana"
-])
-
+tipo_bici = st.selectbox("Tipo de bicicleta", options=["🚴‍♂️ Ruta", "🛞 Triatlón/Cabrita", "🚵‍♀️ MTB", "🚲 Urbana"])
 ftp = st.number_input("⚡ Tu FTP (watts)", value=275)
 tiempo_objetivo = st.text_input("🎯 Tiempo objetivo (opcional, formato mm o mm:ss)", value="")
 
-# === PARÁMETROS Y FUNCIONES ===
+# === PARÁMETROS ===
 bicis = {
     "🚴‍♂️ Ruta": {"CdA": 0.32, "Crr": 0.004},
     "🛞 Triatlón/Cabrita": {"CdA": 0.25, "Crr": 0.0035},
@@ -105,6 +98,7 @@ Crr = bicis[tipo_bici]["Crr"]
 rho = 1.225
 g = 9.81
 
+# === FUNCIONES ===
 def estimar_potencia(dist, elev, tiempo_s, masa):
     pendiente = elev / dist if dist != 0 else 0
     v = dist / tiempo_s
@@ -205,19 +199,17 @@ elif actividad_id:
             opciones.append(f"{color} {s['segment']['name']} ({dist/1000:.2f} km)")
         selected = st.selectbox("Elige un segmento:", opciones)
         seleccionado = segmentos[opciones.index(selected)]
+
         if seleccionado:
             distancia = seleccionado['segment']['distance']
             elevacion = seleccionado['segment']['elevation_high'] - seleccionado['segment']['elevation_low']
-            masa_total = peso_ciclista + peso_bici
             procesar(distancia, elevacion, masa_total)
             st.subheader("📈 Perfil del Segmento")
             streams = get_streams_for_activity(actividad_id)
             if streams and "distance" in streams and "altitude" in streams:
                 d = streams["distance"]
                 a = streams["altitude"]
-                start = seleccionado["start_index"]
-                end = seleccionado["end_index"]
-                graficar([x / 1000 for x in d[start:end]], a[start:end])
+                graficar([x / 1000 for x in d[seleccionado["start_index"]:seleccionado["end_index"]]], a[seleccionado["start_index"]:seleccionado["end_index"]])
             else:
                 st.warning("⚠️ No se pudo obtener el perfil de elevación.")
 
