@@ -205,7 +205,7 @@ def procesar(dist, elev, masa):
 
         st.markdown("---")
         st.subheader("📊 Resultado estimado")
-        st.success(f"⏱️ Con **{potencia:.0f}w**, tardarías aprox. **{minutos} min {segundos} seg**")
+        st.success(f"⏱️ Estimando con el 90% de tu FTP (**{potencia:.0f}w**), tardarías aprox. **{minutos} min {segundos} seg**")
 
 
 # === PROCESAMIENTO DE GPX ===
