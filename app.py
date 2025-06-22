@@ -1,4 +1,5 @@
 import streamlit as st
+import strava_utils as strava
 import gpxpy
 import math
 import os
@@ -8,19 +9,21 @@ from pathlib import Path
 import base64
 from urllib.parse import urlencode
 
-from strava_utils import (
-    get_segments_from_activity,
-    intercambiar_codigo_por_token,
-    sesion_iniciada,
-    cerrar_sesion_strava,
-    obtener_datos_atleta,
-    get_streams_for_activity
-)
-
 # === CONFIGURACIÓN BÁSICA ===
 st.set_page_config(page_title="Calculadora Rompe KOM's 🚴‍♂️", layout="centered")
 
-# === LOGO ===
+# === ESTILOS PERSONALIZADOS ===
+st.markdown("""
+    <style>
+    @media (max-width: 600px) {
+        [data-testid="stSidebar"] {
+            display: none;
+        }
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# === LOGOS ===
 def cargar_logo(path):
     with open(path, "rb") as f:
         data = f.read()
@@ -45,15 +48,15 @@ with col2:
     """
     st.markdown(logo_html, unsafe_allow_html=True)
 
-# === AUTENTICACIÓN STRAVA ===
+# === PROCESAR TOKEN DE AUTENTICACIÓN ===
 if "token_guardado" not in st.session_state:
-    st.session_state["token_guardado"] = False
+    st.session_state["token_guardado"] = strava.sesion_iniciada()
 
 query_params = st.query_params
 if "code" in query_params and not st.session_state["token_guardado"]:
     code = query_params["code"]
-    token_info = intercambiar_codigo_por_token(code)
-    if token_info:
+    token_data = strava.intercambiar_codigo_por_token(code)
+    if token_data:
         st.session_state["token_guardado"] = True
         st.success("✅ Autenticación completada. Puedes continuar.")
         st.rerun()
@@ -62,25 +65,25 @@ if "code" in query_params and not st.session_state["token_guardado"]:
         st.stop()
 
 # === MENÚ LATERAL STRAVA ===
-if sesion_iniciada():
-    datos = obtener_datos_atleta()
+if strava.sesion_iniciada():
+    datos = strava.obtener_datos_atleta()
     if datos:
         col1, col2 = st.sidebar.columns([1, 3])
         col1.image(datos["profile"], width=50)
         col2.markdown(f"**{datos['firstname']} {datos['lastname']}**")
 
         if st.sidebar.button("🔓 Cerrar sesión"):
-            cerrar_sesion_strava()
+            strava.cerrar_sesion_strava()
+            st.session_state["token_guardado"] = False
             st.rerun()
 else:
     auth_url = (
-        f"https://www.strava.com/oauth/authorize?client_id=141324"
-        f"&redirect_uri=https://rompekoms.streamlit.app/"
-        f"&response_type=code&scope=activity:read_all"
+        f"https://www.strava.com/oauth/authorize?{urlencode({'client_id': '141324','response_type': 'code','redirect_uri': 'https://rompekoms.streamlit.app/','approval_prompt': 'auto','scope': 'activity:read_all'})}"
     )
+    st.sidebar.markdown("### 🔐 Iniciar sesión con Strava")
     st.sidebar.link_button("🔐 Iniciar sesión con Strava", auth_url)
 
-# === INTERFAZ PRINCIPAL ===
+# === ENTRADAS DEL USUARIO ===
 modo = st.radio("Selecciona el modo de entrada:", ["📂 Archivo GPX", "🌐 Actividad de Strava"], horizontal=True)
 gpx_file = None
 actividad_id = ""
@@ -88,26 +91,32 @@ actividad_id = ""
 if modo == "📂 Archivo GPX":
     gpx_file = st.file_uploader("📂 Sube tu archivo GPX", type=["gpx"])
 elif modo == "🌐 Actividad de Strava":
-    actividad_input = st.text_input("🔗 Pega el link o ID de una actividad pública de Strava", placeholder="Ej. https://www.strava.com/activities/123456789")
+    actividad_input = st.text_input("🔗 Pega el link o ID de una actividad pública de Strava", placeholder="Ej. https://www.strava.com/activities/14868598235")
     if "activities" in actividad_input:
         actividad_id = actividad_input.strip().split("activities/")[-1].split("/")[0]
     else:
         actividad_id = actividad_input.strip()
 
-peso_ciclista = st.number_input("🏋️ Peso del ciclista (kg)", value=62.0)
-peso_bici = st.number_input("🚲 Peso bici + equipo (kg)", value=8.0)
+col1, col2 = st.columns(2)
+peso_ciclista = col1.number_input("🏋️ Peso del ciclista (kg)", value=62.0)
+peso_bici = col2.number_input("🚲 Peso bici + equipo (kg)", value=8.0)
+altura = st.number_input("📏 Altura (cm)", value=170)
+
 tipo_bici = st.selectbox("Tipo de bicicleta", options=[
-    "🚴‍♂️ Ruta", "🚰 Triatlón/Cabrita", "🚵‍♀️ MTB", "🚲 Urbana"
+    "🚴‍♂️ Ruta", "🚾 Triatlón/Cabrita", "🚵‍♀️ MTB", "🚲 Urbana"
 ])
+
 ftp = st.number_input("⚡ Tu FTP (watts)", value=275)
 tiempo_objetivo = st.text_input("🍏 Tiempo objetivo (opcional, formato mm o mm:ss)", value="")
 
+# === PARÁMETROS FÍSICOS ===
 bicis = {
     "🚴‍♂️ Ruta": {"CdA": 0.32, "Crr": 0.004},
-    "🚰 Triatlón/Cabrita": {"CdA": 0.25, "Crr": 0.0035},
+    "🚾 Triatlón/Cabrita": {"CdA": 0.25, "Crr": 0.0035},
     "🚵‍♀️ MTB": {"CdA": 0.4, "Crr": 0.008},
     "🚲 Urbana": {"CdA": 0.38, "Crr": 0.006},
 }
+
 CdA = bicis[tipo_bici]["CdA"]
 Crr = bicis[tipo_bici]["Crr"]
 rho = 1.225
