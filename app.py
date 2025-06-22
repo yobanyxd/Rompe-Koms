@@ -2,6 +2,7 @@ import streamlit as st
 import gpxpy
 import math
 import os
+import time
 import matplotlib.pyplot as plt
 from urllib.parse import urlparse, parse_qs
 
@@ -42,6 +43,15 @@ if code:
         st.rerun()
     else:
         st.error("❌ Error al obtener token de Strava.")
+
+# === DETECTAR CAMBIO DE TEMA Y FORZAR RECARGA ===
+current_theme = st.get_option("theme.base")
+if "last_theme" not in st.session_state:
+    st.session_state.last_theme = current_theme
+elif st.session_state.last_theme != current_theme:
+    st.session_state.last_theme = current_theme
+    time.sleep(0.5)
+    st.rerun()
 
 # === CABECERA ===
 tema = st.get_option("theme.base")
