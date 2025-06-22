@@ -22,7 +22,6 @@ if "code" in query_params:
     st.session_state["strava_code"] = code
     intercambiar_codigo_por_token(code)
     st.success("✅ ¡Sesión iniciada correctamente!")
-    st.experimental_set_query_params()  # Limpia la URL
     st.rerun()
 
 # === CONFIGURACIÓN GENERAL ===
