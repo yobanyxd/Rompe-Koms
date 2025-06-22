@@ -74,8 +74,8 @@ st.markdown("""
 </style>
 
 <div class="logo-container">
-    <img class="logo-light" src="https://raw.githubusercontent.com/YOBWEAR/assets/main/logo_light.png" width="100">
-    <img class="logo-dark" src="https://raw.githubusercontent.com/YOBWEAR/assets/main/logo_dark.png" width="100">
+    <img class="logo-light" src="https://github.com/yobanyxd/Rompe-Koms/blob/main/logo_light.png" width="100">
+    <img class="logo-dark" src="https://github.com/yobanyxd/Rompe-Koms/blob/main/logo_dark.png" width="100">
 </div>
 """, unsafe_allow_html=True)
 
