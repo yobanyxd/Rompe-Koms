@@ -19,21 +19,10 @@ from strava_utils import (
     get_access_token
 )
 
-def get_auth_url():
-    client_id = "141324"
-    redirect_uri = "https://rompekoms.streamlit.app/"
-    params = {
-        "client_id": client_id,
-        "response_type": "code",
-        "redirect_uri": redirect_uri,
-        "approval_prompt": "auto",
-        "scope": "activity:read_all"
-    }
-    return f"https://www.strava.com/oauth/authorize?{urlencode(params)}"
-
+# === CONFIGURACIÓN BÁSICA ===
 st.set_page_config(page_title="Calculadora Rompe KOM's 🚴‍♂️", layout="centered")
 
-# Encabezado con logo responsivo
+# === LOGO ===
 def cargar_logo(path):
     with open(path, "rb") as f:
         data = f.read()
@@ -42,6 +31,7 @@ def cargar_logo(path):
 light_logo = cargar_logo("logo_light.png")
 dark_logo = cargar_logo("logo_dark.png")
 
+# === CABECERA ===
 st.markdown("<br>", unsafe_allow_html=True)
 col1, col2 = st.columns([6, 1])
 with col1:
@@ -57,14 +47,17 @@ with col2:
     """
     st.markdown(logo_html, unsafe_allow_html=True)
 
+# === PROCESAR AUTENTICACIÓN STRAVA ===
+if "token_guardado" not in st.session_state:
+    st.session_state["token_guardado"] = False
+
 query_params = st.query_params
-
-# Solo procesa el código una vez para evitar error 'code invalid'
-if "code" in query_params and not st.session_state.get("token_guardado"):
+if "code" in query_params and not st.session_state["token_guardado"]:
     code = query_params["code"][0]
-    data = exchange_code_for_token(code)
-
-    if data:
+    token_data = exchange_code_for_token(code)
+    if token_data:
+        with open("strava_token.json", "w") as f:
+            f.write(str(token_data))
         st.session_state["token_guardado"] = True
         st.success("✅ Autenticación completada. Puedes continuar.")
         st.rerun()
@@ -72,7 +65,7 @@ if "code" in query_params and not st.session_state.get("token_guardado"):
         st.error("❌ Fallo al obtener token. Intenta iniciar sesión nuevamente.")
         st.stop()
 
-# Si ya hay token guardado y archivo existe, entonces sesión iniciada
+# === MENÚ LATERAL STRAVA ===
 if sesion_iniciada():
     datos = obtener_datos_atleta()
     if datos:
@@ -82,15 +75,15 @@ if sesion_iniciada():
 
         if st.sidebar.button("🔓 Cerrar sesión"):
             cerrar_sesion_strava()
-            st.session_state.clear()
             st.rerun()
 else:
-    auth_url = get_auth_url()
+    auth_url = (
+        f"https://www.strava.com/oauth/authorize?{urlencode({'client_id': '141324','response_type': 'code','redirect_uri': 'https://rompekoms.streamlit.app/','approval_prompt': 'auto','scope': 'activity:read_all'})}"
+    )
     st.sidebar.link_button("🔐 Iniciar sesión con Strava", auth_url)
 
-
+# === ENTRADAS DEL USUARIO ===
 modo = st.radio("Selecciona el modo de entrada:", ["📂 Archivo GPX", "🌐 Actividad de Strava"], horizontal=True)
-
 gpx_file = None
 actividad_id = ""
 
@@ -115,6 +108,7 @@ tipo_bici = st.selectbox("Tipo de bicicleta", options=[
 ftp = st.number_input("⚡ Tu FTP (watts)", value=275)
 tiempo_objetivo = st.text_input("🍏 Tiempo objetivo (opcional, formato mm o mm:ss)", value="")
 
+# === PARÁMETROS FÍSICOS ===
 bicis = {
     "🚴‍♂️ Ruta": {"CdA": 0.32, "Crr": 0.004},
     "🚾 Triatlón/Cabrita": {"CdA": 0.25, "Crr": 0.0035},
@@ -127,6 +121,7 @@ Crr = bicis[tipo_bici]["Crr"]
 rho = 1.225
 g = 9.81
 
+# === FUNCIONES ===
 def estimar_potencia(distancia, elevacion, tiempo_s, masa_total):
     pendiente_media = elevacion / distancia if distancia != 0 else 0
     velocidad = distancia / tiempo_s
@@ -173,13 +168,14 @@ def procesar_segmento(total_dist, total_elev, masa_total):
             st.success(f"⚡ Para hacerlo en {minutos}:{segundos:02d} min, necesitas aprox. **{potencia_necesaria:.0f}w**")
             st.info(f"📈 Eso equivale a **{vatio_kilo:.2f} w/kg**")
             st.warning(f"⚖️ Para lograrlo con tu FTP actual (**{ftp:.0f}w**), tu peso debería ser **{peso_objetivo:.1f} kg**")
-            st.caption(f"💡 O bien, manteniendo tu peso actual (**{peso_ciclista:.1f}kg**), necesitarías un FTP de **{potencia_necesaria:.0f}w**.")
+            st.caption(f"💡 O mantener tu peso actual (**{peso_ciclista:.1f}kg**) y subir tu FTP a **{potencia_necesaria:.0f}w**.")
 
         except:
-            st.error("⚠️ El formato del tiempo es incorrecto. Usa `mm` o `mm:ss` (ej. 10 o 10:30)")
+            st.error("⚠️ El formato del tiempo es incorrecto. Usa `mm` o `mm:ss`")
     else:
         potencia = ftp * 0.9
         pendiente_media = total_elev / total_dist if total_dist != 0 else 0
+
         def encontrar_velocidad(p):
             v = 1.0
             for _ in range(1000):
@@ -199,10 +195,10 @@ def procesar_segmento(total_dist, total_elev, masa_total):
 
         st.markdown("---")
         st.subheader("📊 Resultado estimado")
-        st.success(f"⏱️ Con **{potencia:.0f}w** (90% de tu FTP), completarías el segmento en **{tiempo_min:.1f} minutos**")
-        st.caption("📌 El cálculo asume que puedes sostener el 90% de tu FTP durante todo el segmento.")
+        st.success(f"⏱️ Con **{potencia:.0f}w**, completarías el segmento en **{tiempo_min:.1f} minutos**")
+        st.caption("📌 Asumiendo que puedes sostener el 90% de tu FTP.")
 
-# === Desde Strava ===
+# === PROCESO PARA SEGMENTO STRAVA ===
 if actividad_id:
     segmentos = get_segments_from_activity(actividad_id)
     if not segmentos:
@@ -216,7 +212,7 @@ if actividad_id:
             masa_total
         ))
 
-        st.success(f"✅ {len(segmentos)} segmentos encontrados (ordenados por dificultad).")
+        st.success(f"✅ {len(segmentos)} segmentos encontrados.")
         mostrar_leyenda()
 
         opciones_coloreadas = []
@@ -256,11 +252,11 @@ if actividad_id:
                     distancias = [d / 1000 for d in segmento_dist]
                     graficar_elevacion(distancias, segmento_alt)
                 else:
-                    st.warning("⚠️ No se pudo recortar el segmento correctamente en los datos del stream.")
+                    st.warning("⚠️ No se pudo recortar el segmento correctamente.")
             else:
-                st.warning("⚠️ No se pudo obtener el perfil de elevación del segmento.")
+                st.warning("⚠️ No se pudo obtener el perfil de elevación.")
 
-# === Desde archivo GPX ===
+# === GPX ===
 if gpx_file:
     gpx = gpxpy.parse(gpx_file)
 
@@ -276,7 +272,7 @@ if gpx_file:
                     d = point.distance_3d(last_point)
                     if d is not None:
                         total_dist += d
-                distancias.append(total_dist / 1000)  # km
+                distancias.append(total_dist / 1000)
                 elevaciones.append(point.elevation)
                 last_point = point
 
@@ -287,9 +283,9 @@ if gpx_file:
         st.subheader("📈 Perfil del Segmento")
         graficar_elevacion(distancias, elevaciones)
     else:
-        st.warning("⚠️ El archivo GPX no contiene suficientes datos para graficar.")
+        st.warning("⚠️ El archivo GPX no tiene datos suficientes.")
 
-# Pie de página
+# === PIE DE PÁGINA ===
 st.markdown("""
 ---
 <p style='text-align: center; font-size: 0.8rem;'>🛠️ Desarrollado con cariño por <b>Yobwear</b> — v1.0</p>
