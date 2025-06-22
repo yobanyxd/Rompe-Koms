@@ -244,7 +244,8 @@ if gpx_file:
         elevaciones.append(p2.elevation)
 
     masa_total = peso_ciclista + peso_bici
-    graficar(distancias, elevaciones)
+    st.session_state.segmento_dist = distancias
+    st.session_state.segmento_elev = elevaciones
     procesar(total_dist, total_elev, masa_total)
 
 # === PROCESAMIENTO DE STRAVA ===
@@ -292,6 +293,25 @@ elif actividad_id:
 
         masa_total = peso_ciclista + peso_bici
         procesar(distancia, elevacion, masa_total)
+        st.session_state.segmento_dist = None
+st.session_state.segmento_elev = None
+
+streams = get_streams_for_activity(actividad_id)
+if streams and "distance" in streams and "altitude" in streams:
+    try:
+        d = streams["distance"]["data"]
+        a = streams["altitude"]["data"]
+        start = seleccionado["start_index"]
+        end = seleccionado["end_index"]
+
+        if start is not None and end is not None and end <= len(d):
+            distancias = [x / 1000 for x in d[start:end]]
+            altitudes = a[start:end]
+            st.session_state.segmento_dist = distancias
+            st.session_state.segmento_elev = altitudes
+    except:
+        pass
+
 
 # === PERFIL DEL SEGMENTO ===
 st.subheader("📈 Perfil del Segmento")
