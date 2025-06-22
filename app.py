@@ -163,11 +163,11 @@ def graficar(distancias, elevaciones):
     plt.title("Perfil del Segmento")
     st.pyplot(plt)
 
-def procesar(dist, elev, masa, tiempo_objetivo="", ftp=0, peso_ciclista=0, potencia_objetivo=0):
+def procesar(dist, elev, masa):
     dist_km = dist / 1000
     st.markdown(f"📏 **Distancia:** {dist_km:.2f} km")
     st.markdown(f"🧗 **Desnivel:** {elev:.0f} m")
-
+    
     if tiempo_objetivo:
         try:
             partes = tiempo_objetivo.strip().split(":")
@@ -179,34 +179,11 @@ def procesar(dist, elev, masa, tiempo_objetivo="", ftp=0, peso_ciclista=0, poten
             peso_obj = ftp / wkg
             st.markdown("---")
             st.subheader("📊 Resultado estimado")
-            st.success(f"⚡ Para lograrlo necesitas aprox. **{potencia:.0f}w**")
+            st.success(f"⚡ Necesitas aprox. **{potencia:.0f}w**")
             st.info(f"📈 Eso equivale a **{wkg:.2f} w/kg**")
             st.warning(f"⚖️ Peso necesario con tu FTP: **{peso_obj:.1f} kg**")
         except:
             st.error("⚠️ Tiempo mal escrito. Usa mm o mm:ss")
-
-    elif potencia_objetivo > 0:
-        pendiente = elev / dist if dist != 0 else 0
-
-        def buscar_velocidad(p):
-            v = 1.0
-            for _ in range(1000):
-                total = masa * g * pendiente * v + masa * g * Crr * v + 0.5 * rho * CdA * v**3
-                error = p - total
-                if abs(error) < 0.1:
-                    return v
-                v += error / 200
-            return v
-
-        v = buscar_velocidad(potencia_objetivo)
-        tiempo_seg = int(dist / v)
-        minutos = tiempo_seg // 60
-        segundos = tiempo_seg % 60
-
-        st.markdown("---")
-        st.subheader("📊 Resultado estimado")
-        st.success(f"⏱️ Con **{potencia_objetivo:.0f}w**, tardarías aprox. **{minutos} min {segundos} seg**")
-
     else:
         potencia = ftp * 0.9
         pendiente = elev / dist if dist != 0 else 0
@@ -222,13 +199,14 @@ def procesar(dist, elev, masa, tiempo_objetivo="", ftp=0, peso_ciclista=0, poten
             return v
 
         v = buscar_velocidad(potencia)
-        tiempo_seg = int(dist / v)
+        tiempo_seg = int(dist / v)  # Tiempo en segundos
         minutos = tiempo_seg // 60
         segundos = tiempo_seg % 60
 
         st.markdown("---")
         st.subheader("📊 Resultado estimado")
-        st.success(f"⏱️ Estimando que mantienes el 90% de tu FTP (**{potencia:.0f}w**), tardarías aprox. **{minutos} min {segundos} seg**")
+        st.success(f"⏱️ Con **{potencia:.0f}w**, tardarías aprox. **{minutos} min {segundos} seg**")
+
 
 # === PROCESAMIENTO DE GPX ===
 if gpx_file:
@@ -266,10 +244,8 @@ if gpx_file:
         elevaciones.append(p2.elevation)
 
     masa_total = peso_ciclista + peso_bici
+    graficar(distancias, elevaciones)
     procesar(total_dist, total_elev, masa_total)
-    st.session_state.segmento_dist = distancias
-    st.session_state.segmento_elev = elevaciones
-
 
 # === PROCESAMIENTO DE STRAVA ===
 elif actividad_id:
@@ -343,7 +319,6 @@ elif actividad_id and 'seleccionado' in locals():
             st.warning(f"⚠️ No se pudo graficar el perfil: {e}")
     else:
         st.warning("⚠️ No se pudo obtener los datos de altitud y distancia para graficar el perfil.")
-
 
 # === PIE DE PÁGINA ===
 st.markdown("""---<p style='text-align: center; font-size: 0.8rem;'>🛠️ Desarrollado con cariño por <b>Yobwear</b> — v1.0</p>""", unsafe_allow_html=True)
