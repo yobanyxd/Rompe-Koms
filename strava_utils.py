@@ -7,7 +7,7 @@ import os
 
 CLIENT_ID = "141324"
 CLIENT_SECRET = "98ab51d07e20b58141f3242e93879dd78d4dfbbc"
-REDIRECT_URI = "http://localhost:8000/exchange_token"
+REDIRECT_URI = "https://rompekoms.streamlit.app/"
 TOKEN_FILE = "strava_token.json"
 
 # === SERVIDOR PARA AUTENTICACIÓN LOCAL ===
