@@ -23,7 +23,7 @@ with col1:
     st.markdown("## 🔥 CALCULADORA ROMPE KOM'S")
     st.markdown("Analiza tus segmentos favoritos usando tu FTP, peso y tipo de bici.")
 with col2:
-    st.image("logo_yob.png", width=100)  # asegúrate que logo_yob.png esté en la carpeta raíz
+    st.image("logo_ligth.png", width=100)  # asegúrate que logo_yob.png esté en la carpeta raíz
 
 # Manejo de sesión
 if not sesion_iniciada() and os.path.exists("strava_token.json"):
