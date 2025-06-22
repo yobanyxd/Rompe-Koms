@@ -28,27 +28,30 @@ with col2:
     if os.path.exists(logo_path):
         st.image(logo_path, width=100)
 
-# === MANEJO DE SESIÓN STRAVA ===
-if sesion_iniciada():
-    datos = obtener_datos_atleta()
-    if datos:
-        col1, col2 = st.columns([1, 6])
-        col1.image(datos["profile"], width=50)
-        col2.markdown(f"**{datos['firstname']} {datos['lastname']}**")
+# === INICIO DE SESIÓN CON STRAVA (OPCIONAL) ===
+with st.expander("🔐 Opcional: Inicia sesión con Strava para analizar tus segmentos automáticamente"):
+    if sesion_iniciada():
+        datos = obtener_datos_atleta()
+        if datos:
+            col1, col2 = st.columns([1, 6])
+            col1.image(datos["profile"], width=50)
+            col2.markdown(f"**{datos['firstname']} {datos['lastname']}**")
 
-        if st.button("🔓 Cerrar sesión"):
-            cerrar_sesion_strava()
-            st.rerun()
+            if st.button("🔓 Cerrar sesión"):
+                cerrar_sesion_strava()
+                st.rerun()
+        else:
+            st.warning("⚠️ Hubo un error al obtener datos del atleta. Intenta cerrar sesión y volver a iniciar.")
+            if st.button("🔓 Forzar cierre de sesión"):
+                cerrar_sesion_strava()
+                st.rerun()
     else:
-        st.warning("⚠️ Hubo un error al obtener datos del atleta. Intenta cerrar sesión y volver a iniciar.")
-        if st.button("🔓 Forzar cierre de sesión"):
-            cerrar_sesion_strava()
-            st.rerun()
-else:
-    st.warning("🔐 No has iniciado sesión con Strava")
-    if st.button("🔗 Iniciar sesión con Strava"):
-        iniciar_sesion_strava()
-        st.info("✅ Autenticación iniciada. Se abrió una nueva pestaña. Luego regresa y actualiza la app si es necesario.")
+        st.markdown(
+            "[🔗 Iniciar sesión con Strava](https://www.strava.com/oauth/authorize?client_id=141324&response_type=code&redirect_uri=https://rompekoms.streamlit.app/&approval_prompt=auto&scope=read,activity:read)"
+            " <small>(se abrirá en una nueva pestaña)</small>",
+            unsafe_allow_html=True
+        )
+
 
 # === MODO DE ENTRADA ===
 modo = st.radio("Selecciona el modo de entrada:", ["📂 Archivo GPX", "🌐 Actividad de Strava"], horizontal=True)
