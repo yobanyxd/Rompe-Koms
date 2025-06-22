@@ -244,9 +244,10 @@ if gpx_file:
         elevaciones.append(p2.elevation)
 
     masa_total = peso_ciclista + peso_bici
-        procesar(total_dist, total_elev, masa_total)
+    procesar(total_dist, total_elev, masa_total)
     st.session_state.segmento_dist = distancias
     st.session_state.segmento_elev = elevaciones
+
 
 # === PROCESAMIENTO DE STRAVA ===
 elif actividad_id:
