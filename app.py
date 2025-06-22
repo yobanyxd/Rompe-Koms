@@ -1,9 +1,11 @@
+
 import streamlit as st
 import gpxpy
 import math
 import os
 import matplotlib.pyplot as plt
 import base64
+from urllib.parse import urlparse, parse_qs
 
 from strava_utils import (
     get_segments_from_activity,
@@ -12,20 +14,23 @@ from strava_utils import (
     cerrar_sesion_strava,
     obtener_datos_atleta,
     get_streams_for_activity,
-    intercambiar_codigo_por_token  # asegúrate de importar esto también
+    intercambiar_codigo_por_token
 )
-
-# === CAPTURAR CÓDIGO DE STRAVA SI REGRESA CON ?code= ===
-query_params = st.query_params
-if "code" in query_params:
-    code = query_params["code"][0]
-    st.session_state["strava_code"] = code
-    intercambiar_codigo_por_token(code)
-    st.success("✅ ¡Sesión iniciada correctamente!")
-    st.rerun()
 
 # === CONFIGURACIÓN GENERAL ===
 st.set_page_config(page_title="Calculadora de Segmentos 🚴‍♂️", layout="centered")
+
+# Manejo del retorno de Strava con el token
+query_params = st.query_params
+code = query_params.get("code")
+if code:
+    token_data = intercambiar_codigo_por_token(code)
+    if token_data:
+        st.success("✅ ¡Sesión iniciada correctamente!")
+        st.query_params.clear()
+        st.rerun()
+    else:
+        st.error("❌ Hubo un problema al iniciar sesión con Strava.")
 
 # Detectar tema (claro/oscuro) y mostrar logo correspondiente
 tema = st.get_option("theme.base")
@@ -43,13 +48,11 @@ col1, col2 = st.columns([2, 2])
 with col1:
     modo = st.radio("Selecciona el modo de entrada:", ["📂 Archivo GPX", "🌐 Actividad de Strava"], horizontal=True)
 
-# Mostrar la opción de login con Strava solo si seleccionan modo Strava
-usar_strava_login = False
+# Mostrar opción de login con Strava
 with col2:
-    if modo == "🌐 Actividad de Strava":
-        usar_strava_login = st.checkbox("🔐 Iniciar sesión con Strava (opcional)", value=False)
+    usar_strava_login = st.checkbox("🔐 Iniciar sesión con Strava (opcional)", value=False)
 
-# === INICIO DE SESIÓN CON STRAVA (OPCIONAL) ===
+# Mostrar sección de login solo si el usuario marca la casilla
 if usar_strava_login:
     if sesion_iniciada():
         datos = obtener_datos_atleta()
@@ -67,22 +70,9 @@ if usar_strava_login:
                 st.rerun()
     else:
         st.markdown(
-            "[🔗 Iniciar sesión con Strava](https://www.strava.com/oauth/authorize?client_id=141324&response_type=code&redirect_uri=https://rompekoms.streamlit.app/&approval_prompt=auto&scope=read,activity:read)"
-            " <small>(se abrirá en una nueva pestaña)</small>",
+            '<a href="https://www.strava.com/oauth/authorize?client_id=141324&response_type=code&redirect_uri=https://rompekoms.streamlit.app/&approval_prompt=auto&scope=read,activity:read" target="_self">🔗 Iniciar sesión con Strava</a>',
             unsafe_allow_html=True
         )
-
-# === ENTRADA DEL USUARIO ===
-actividad_id = ""
-gpx_file = None
-if modo == "📂 Archivo GPX":
-    gpx_file = st.file_uploader("📂 Sube tu archivo GPX", type=["gpx"])
-elif modo == "🌐 Actividad de Strava":
-    actividad_input = st.text_input("🔗 Pega el link o ID de una actividad pública de Strava", placeholder="Ej. https://www.strava.com/activities/14868598235")
-    if "activities" in actividad_input:
-        actividad_id = actividad_input.strip().split("activities/")[-1].split("/")[0]
-    else:
-        actividad_id = actividad_input.strip()
 
 # === DATOS DEL USUARIO ===
 col1, col2 = st.columns(2)
