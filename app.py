@@ -1,15 +1,5 @@
 import streamlit as st
 import strava_utils as strava
-
-# ✅ VERIFICA SI STRAVA DEVOLVIÓ UN TOKEN EN LA URL
-query_params = st.query_params
-if "code" in query_params:
-    code = query_params["code"]
-    token_info = strava.intercambiar_codigo_por_token(code)
-    if token_info:
-        st.success("✅ Autenticación completada. Puedes continuar.")
-    else:
-        st.error("❌ Fallo al obtener token. Intenta iniciar sesión nuevamente.")
 import gpxpy
 import math
 import os
@@ -77,29 +67,25 @@ if "code" in query_params and not st.session_state["token_guardado"]:
         st.stop()
 
 # === MENÚ LATERAL STRAVA ===
-if sesion_iniciada():
-    datos = obtener_datos_atleta()
-    if datos:
-        col1, col2 = st.sidebar.columns([1, 3])
-        col1.image(datos["profile"], width=50)
-        col2.markdown(f"**{datos['firstname']} {datos['lastname']}**")
+with st.sidebar:
+    if sesion_iniciada():
+        datos = obtener_datos_atleta()
+        if datos:
+            col1, col2 = st.columns([1, 3])
+            col1.image(datos["profile"], width=50)
+            col2.markdown(f"**{datos['firstname']} {datos['lastname']}**")
 
-        if st.sidebar.button("🔓 Cerrar sesión"):
-            cerrar_sesion_strava()
-            st.rerun()
-else:
-    auth_url = (
-        f"https://www.strava.com/oauth/authorize?{urlencode({'client_id': '141324','response_type': 'code','redirect_uri': 'https://rompekoms.streamlit.app/','approval_prompt': 'auto','scope': 'activity:read_all'})}"
-    )
-    st.sidebar.link_button("🔐 Iniciar sesión con Strava", auth_url)
-    with st.sidebar:
-    st.markdown("### 🔐 Iniciar sesión con Strava")
-    auth_url = (
-        f"https://www.strava.com/oauth/authorize?client_id=141324"
-        f"&redirect_uri=https://rompekoms.streamlit.app/"
-        f"&response_type=code&scope=activity:read_all"
-    )
-    st.link_button("Iniciar sesión con Strava", auth_url)
+            if st.button("🔓 Cerrar sesión"):
+                cerrar_sesion_strava()
+                st.rerun()
+    else:
+        st.markdown("### 🔐 Iniciar sesión con Strava")
+        auth_url = (
+            f"https://www.strava.com/oauth/authorize?client_id=141324"
+            f"&redirect_uri=https://rompekoms.streamlit.app/"
+            f"&response_type=code&scope=activity:read_all"
+        )
+        st.link_button("Iniciar sesión con Strava", auth_url)
 
 # === ENTRADAS DEL USUARIO ===
 modo = st.radio("Selecciona el modo de entrada:", ["📂 Archivo GPX", "🌐 Actividad de Strava"], horizontal=True)
