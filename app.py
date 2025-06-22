@@ -59,25 +59,33 @@ st.markdown("""
     .logo-container {
         display: flex;
         justify-content: flex-end;
+        align-items: center;
     }
-    .logo-dark {
+    .logo-light {
         display: none;
     }
-    @media (prefers-color-scheme: dark) {
-        .logo-light { display: none; }
-        .logo-dark { display: block; }
-    }
     @media (prefers-color-scheme: light) {
-        .logo-light { display: block; }
         .logo-dark { display: none; }
+        .logo-light { display: block; }
+    }
+    @media (prefers-color-scheme: dark) {
+        .logo-dark { display: block; }
+        .logo-light { display: none; }
     }
 </style>
-
-<div class="logo-container">
-    <img class="logo-light" src="https://raw.githubusercontent.com/yobanyxd/Rompe-Koms/main/logo_light.png" width="100">
-    <img class="logo-dark" src="https://raw.githubusercontent.com/yobanyxd/Rompe-Koms/main/logo_dark.png" width="100">
-</div>
 """, unsafe_allow_html=True)
+
+col1, col2 = st.columns([4, 1])
+with col1:
+    st.markdown("## 🔥 CALCULADORA ROMPE KOM'S")
+    st.markdown("Analiza tus segmentos favoritos usando tu FTP, peso y tipo de bici.")
+with col2:
+    st.markdown("""
+        <div class="logo-container">
+            <img class="logo-light" src="https://raw.githubusercontent.com/yobanyxd/Rompe-Koms/main/logo_light.png" width="100">
+            <img class="logo-dark" src="https://raw.githubusercontent.com/yobanyxd/Rompe-Koms/main/logo_dark.png" width="100">
+        </div>
+    """, unsafe_allow_html=True)
 
 st.markdown("## 🔥 CALCULADORA ROMPE KOM'S")
 st.markdown("Analiza tus segmentos favoritos usando tu FTP, peso y tipo de bici.")
