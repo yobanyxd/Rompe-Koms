@@ -170,6 +170,7 @@ if gpx_file:
     elev = max(0, punto2.elevation - punto1.elevation)
     total_dist += d
     total_elev += elev
+    
     distancias = []
     elevaciones = []
     dist_acumulada = 0
