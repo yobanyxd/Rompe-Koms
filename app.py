@@ -160,7 +160,7 @@ if gpx_file:
     for track in gpx.tracks:
         for seg in track.segments:
             puntos.extend(seg.points)
-            for i in range(1, len(seg.points)):
+          for i in range(1, len(seg.points)):
     punto1 = seg.points[i-1]
     punto2 = seg.points[i]
     d = haversine_distance(
@@ -170,7 +170,7 @@ if gpx_file:
     elev = max(0, punto2.elevation - punto1.elevation)
     total_dist += d
     total_elev += elev
-    
+
     distancias = []
     elevaciones = []
     dist_acumulada = 0
