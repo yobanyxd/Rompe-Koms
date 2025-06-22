@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from PIL import Image
 from pathlib import Path
 import base64
+from urllib.parse import urlencode
 
 from Strava.strava_utils import (
     get_segments_from_activity,
@@ -13,8 +14,22 @@ from Strava.strava_utils import (
     sesion_iniciada,
     cerrar_sesion_strava,
     obtener_datos_atleta,
-    get_streams_for_activity
+    get_streams_for_activity,
+    exchange_code_for_token,
+    get_access_token
 )
+
+def get_auth_url():
+    client_id = "141324"
+    redirect_uri = "https://rompekoms.streamlit.app/"
+    params = {
+        "client_id": client_id,
+        "response_type": "code",
+        "redirect_uri": redirect_uri,
+        "approval_prompt": "auto",
+        "scope": "activity:read_all"
+    }
+    return f"https://www.strava.com/oauth/authorize?{urlencode(params)}"
 
 st.set_page_config(page_title="Calculadora Rompe KOM's 🚴‍♂️", layout="centered")
 
@@ -42,7 +57,11 @@ with col2:
     """
     st.markdown(logo_html, unsafe_allow_html=True)
 
-if not sesion_iniciada() and os.path.exists("strava_token.json"):
+query_params = st.experimental_get_query_params()
+if "code" in query_params:
+    code = query_params["code"][0]
+    exchange_code_for_token(code)
+    st.success("✅ Autenticación completada. Puedes continuar.")
     st.rerun()
 
 if sesion_iniciada():
@@ -56,9 +75,8 @@ if sesion_iniciada():
             cerrar_sesion_strava()
             st.rerun()
 else:
-    if st.sidebar.button("🔐 Iniciar sesión con Strava"):
-        iniciar_sesion_strava()
-        st.info("✅ Autenticación iniciada. Una nueva ventana se abrió. Luego, vuelve aquí y actualiza si es necesario.")
+    auth_url = get_auth_url()
+    st.sidebar.link_button("🔐 Iniciar sesión con Strava", auth_url)
 
 modo = st.radio("Selecciona el modo de entrada:", ["📂 Archivo GPX", "🌐 Actividad de Strava"], horizontal=True)
 
