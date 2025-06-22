@@ -1,51 +1,84 @@
 import streamlit as st
+import gpxpy
+import math
+import os
+import matplotlib.pyplot as plt
+from PIL import Image
+from pathlib import Path
 import base64
 from urllib.parse import urlencode
+
 from strava_utils import (
     get_segments_from_activity,
     intercambiar_codigo_por_token,
     sesion_iniciada,
     cerrar_sesion_strava,
-    obtener_datos_atleta
+    obtener_datos_atleta,
+    get_streams_for_activity
 )
 
-# Constantes necesarias (puedes mover esto a un archivo separado si quieres)
-CLIENT_ID = "141324"
-REDIRECT_URI = "https://rompekoms.streamlit.app/"
+# === CONFIGURACIÓN BÁSICA ===
+st.set_page_config(page_title="Calculadora Rompe KOM's 🚴‍♂️", layout="centered")
 
-st.set_page_config(page_title="Calculadora Rompe KOM's", layout="centered")
+# === LOGO ===
+def cargar_logo(path):
+    with open(path, "rb") as f:
+        data = f.read()
+    return base64.b64encode(data).decode()
 
-st.markdown("## 🔥 CALCULADORA ROMPE KOM'S")
-st.markdown("Analiza el esfuerzo necesario para tus segmentos favoritos de ciclismo usando tu FTP, peso y equipo.")
+light_logo = cargar_logo("logo_light.png")
+dark_logo = cargar_logo("logo_dark.png")
 
-# ---------------------------
-# SESIÓN STRAVA
-# ---------------------------
+# === CABECERA ===
+st.markdown("<br>", unsafe_allow_html=True)
+col1, col2 = st.columns([6, 1])
+with col1:
+    st.markdown("## 🔥 CALCULADORA ROMPE KOM'S")
+    st.caption("Analiza el esfuerzo necesario para tus segmentos favoritos de ciclismo usando tu FTP, peso y equipo.")
+with col2:
+    logo_html = f"""
+    <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="data:image/png;base64,{light_logo}">
+        <source media="(prefers-color-scheme: light)" srcset="data:image/png;base64,{dark_logo}">
+        <img src="data:image/png;base64,{light_logo}" style="max-width: 100px; margin-top: 0.8rem;" alt="Logo">
+    </picture>
+    """
+    st.markdown(logo_html, unsafe_allow_html=True)
+
+# === AUTENTICACIÓN STRAVA ===
+if "token_guardado" not in st.session_state:
+    st.session_state["token_guardado"] = False
+
 query_params = st.query_params
-if "code" in query_params:
+if "code" in query_params and not st.session_state["token_guardado"]:
     code = query_params["code"]
-    token_data = intercambiar_codigo_por_token(code)
-    if token_data:
-        st.success("✅ Sesión iniciada con éxito.")
+    token_info = intercambiar_codigo_por_token(code)
+    if token_info:
+        st.session_state["token_guardado"] = True
+        st.success("✅ Autenticación completada. Puedes continuar.")
         st.rerun()
     else:
         st.error("❌ Fallo al obtener token. Intenta iniciar sesión nuevamente.")
         st.stop()
 
-if not sesion_iniciada():
-    st.markdown("### 🛡️ Iniciar sesión con Strava")
-    st.info("Necesitas iniciar sesión con Strava para poder analizar tus actividades.")
+# === MENÚ LATERAL STRAVA ===
+if sesion_iniciada():
+    datos = obtener_datos_atleta()
+    if datos:
+        col1, col2 = st.sidebar.columns([1, 3])
+        col1.image(datos["profile"], width=50)
+        col2.markdown(f"**{datos['firstname']} {datos['lastname']}**")
+
+        if st.sidebar.button("🔓 Cerrar sesión"):
+            cerrar_sesion_strava()
+            st.rerun()
+else:
     auth_url = (
-        "https://www.strava.com/oauth/authorize?" + urlencode({
-            "client_id": CLIENT_ID,
-            "response_type": "code",
-            "redirect_uri": REDIRECT_URI,
-            "approval_prompt": "auto",
-            "scope": "activity:read_all"
-        })
+        f"https://www.strava.com/oauth/authorize?client_id=141324"
+        f"&redirect_uri=https://rompekoms.streamlit.app/"
+        f"&response_type=code&scope=activity:read_all"
     )
-    st.markdown(f"[Haz clic aquí para iniciar sesión con Strava 🚴‍♂️]({auth_url})", unsafe_allow_html=True)
-    st.stop()
+    st.sidebar.link_button("🔐 Iniciar sesión con Strava", auth_url)
 
 # === INTERFAZ PRINCIPAL ===
 modo = st.radio("Selecciona el modo de entrada:", ["📂 Archivo GPX", "🌐 Actividad de Strava"], horizontal=True)
