@@ -157,19 +157,20 @@ if gpx_file:
     total_dist = 0
     total_elev = 0
     puntos = []
+
     for track in gpx.tracks:
         for seg in track.segments:
             puntos.extend(seg.points)
-          for i in range(1, len(seg.points)):
-    punto1 = seg.points[i-1]
-    punto2 = seg.points[i]
-    d = haversine_distance(
-        punto1.latitude, punto1.longitude, punto1.elevation,
-        punto2.latitude, punto2.longitude, punto2.elevation
-    )
-    elev = max(0, punto2.elevation - punto1.elevation)
-    total_dist += d
-    total_elev += elev
+            for i in range(1, len(seg.points)):
+                punto1 = seg.points[i-1]
+                punto2 = seg.points[i]
+                d = haversine_distance(
+                    punto1.latitude, punto1.longitude, punto1.elevation,
+                    punto2.latitude, punto2.longitude, punto2.elevation
+                )
+                elev = max(0, punto2.elevation - punto1.elevation)
+                total_dist += d
+                total_elev += elev
 
     distancias = []
     elevaciones = []
@@ -179,6 +180,7 @@ if gpx_file:
         dist_acumulada += d
         distancias.append(dist_acumulada / 1000)
         elevaciones.append(puntos[i].elevation)
+
     masa_total = peso_ciclista + peso_bici
     graficar(distancias, elevaciones)
     procesar(total_dist, total_elev, masa_total)
