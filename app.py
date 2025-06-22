@@ -92,6 +92,14 @@ else:
         f"https://www.strava.com/oauth/authorize?{urlencode({'client_id': '141324','response_type': 'code','redirect_uri': 'https://rompekoms.streamlit.app/','approval_prompt': 'auto','scope': 'activity:read_all'})}"
     )
     st.sidebar.link_button("🔐 Iniciar sesión con Strava", auth_url)
+    with st.sidebar:
+    st.markdown("### 🔐 Iniciar sesión con Strava")
+    auth_url = (
+        f"https://www.strava.com/oauth/authorize?client_id=141324"
+        f"&redirect_uri=https://rompekoms.streamlit.app/"
+        f"&response_type=code&scope=activity:read_all"
+    )
+    st.link_button("Iniciar sesión con Strava", auth_url)
 
 # === ENTRADAS DEL USUARIO ===
 modo = st.radio("Selecciona el modo de entrada:", ["📂 Archivo GPX", "🌐 Actividad de Strava"], horizontal=True)
