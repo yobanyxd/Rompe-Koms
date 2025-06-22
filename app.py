@@ -314,31 +314,16 @@ if streams and "distance" in streams and "altitude" in streams:
 
 
 # === PERFIL DEL SEGMENTO ===
+st.markdown("---")
 st.subheader("📈 Perfil del Segmento")
 
-if gpx_file and "segmento_dist" in st.session_state:
-    graficar(st.session_state.segmento_dist, st.session_state.segmento_elev)
+dist = st.session_state.get("segmento_dist")
+elev = st.session_state.get("segmento_elev")
 
-elif actividad_id and 'seleccionado' in locals():
-    streams = get_streams_for_activity(actividad_id)
-
-    if streams and "distance" in streams and "altitude" in streams:
-        try:
-            d = streams["distance"]["data"]
-            a = streams["altitude"]["data"]
-            start = seleccionado["start_index"]
-            end = seleccionado["end_index"]
-
-            if start is not None and end is not None and end <= len(d):
-                distancias = [x / 1000 for x in d[start:end]]
-                altitudes = a[start:end]
-                graficar(distancias, altitudes)
-            else:
-                st.warning("⚠️ No se pudo graficar: el índice del segmento está fuera del rango de los datos.")
-        except Exception as e:
-            st.warning(f"⚠️ No se pudo graficar el perfil: {e}")
-    else:
-        st.warning("⚠️ No se pudo obtener los datos de altitud y distancia para graficar el perfil.")
+if dist and elev and len(dist) > 0 and len(elev) > 0:
+    graficar(dist, elev)
+else:
+    st.warning("⚠️ No hay datos válidos para graficar el perfil del segmento.")
 
 # === PIE DE PÁGINA ===
 st.markdown("""---<p style='text-align: center; font-size: 0.8rem;'>🛠️ Desarrollado con cariño por <b>Yobwear</b> — v1.0</p>""", unsafe_allow_html=True)
