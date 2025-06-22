@@ -54,18 +54,15 @@ with st.expander("🔐 Opcional: Inicia sesión con Strava para analizar tus seg
 
 
 # === MODO DE ENTRADA ===
-modo = st.radio("Selecciona el modo de entrada:", ["📂 Archivo GPX", "🌐 Actividad de Strava"], horizontal=True)
-gpx_file = None
-actividad_id = ""
+col1, col2 = st.columns([2, 2])
+with col1:
+    modo = st.radio("Selecciona el modo de entrada:", ["📂 Archivo GPX", "🌐 Actividad de Strava"], horizontal=True)
 
-if modo == "📂 Archivo GPX":
-    gpx_file = st.file_uploader("📂 Sube tu archivo GPX", type=["gpx"])
-elif modo == "🌐 Actividad de Strava":
-    actividad_input = st.text_input("🔗 Pega el link o ID de una actividad pública de Strava", placeholder="Ej. https://www.strava.com/activities/14868598235")
-    if "activities" in actividad_input:
-        actividad_id = actividad_input.strip().split("activities/")[-1].split("/")[0]
-    else:
-        actividad_id = actividad_input.strip()
+# Mostrar la opción de login con Strava solo si seleccionan modo Strava
+usar_strava_login = False
+with col2:
+    if modo == "🌐 Actividad de Strava":
+        usar_strava_login = st.checkbox("🔐 Iniciar sesión con Strava (opcional)", value=False)
 
 # === DATOS DEL USUARIO ===
 col1, col2 = st.columns(2)
