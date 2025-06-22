@@ -64,7 +64,7 @@ if "code" in query_params and "token_guardado" not in st.session_state:
     if data:
         st.session_state["token_guardado"] = True
         st.success("✅ Autenticación completada. Puedes continuar.")
-        st.experimental_rerun()  # Esto ya no causa loops porque hay una bandera
+        st.rerun()  # Esto ya no causa loops porque hay una bandera
 
 # Evita mensaje de éxito duplicado después del refresh
 if st.session_state.get("autenticado", False):
