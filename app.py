@@ -17,13 +17,16 @@ from strava_utils import (
 # === CONFIGURACIÓN GENERAL ===
 st.set_page_config(page_title="Calculadora de Segmentos 🚴‍♂️", layout="centered")
 
-# Mostrar el nombre y logo
+# Detectar tema (claro/oscuro) y mostrar logo correspondiente
+tema = st.get_option("theme.base")
+logo_path = "logo_light.png" if tema == "dark" else "logo_dark.png"
 col1, col2 = st.columns([4, 1])
 with col1:
     st.markdown("## 🔥 CALCULADORA ROMPE KOM'S")
     st.markdown("Analiza tus segmentos favoritos usando tu FTP, peso y tipo de bici.")
 with col2:
-    st.image("logo_ligth.png", width=100)  # asegúrate que logo_yob.png esté en la carpeta raíz
+    if os.path.exists(logo_path):
+        st.image(logo_path, width=100)
 
 # Manejo de sesión
 if not sesion_iniciada() and os.path.exists("strava_token.json"):
