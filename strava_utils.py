@@ -1,56 +1,11 @@
 import requests
-import json
-import webbrowser
-from http.server import BaseHTTPRequestHandler, HTTPServer
-import threading
-import os
+import streamlit as st
 
 CLIENT_ID = "141324"
 CLIENT_SECRET = "98ab51d07e20b58141f3242e93879dd78d4dfbbc"
 REDIRECT_URI = "https://rompekoms.streamlit.app/"
-TOKEN_FILE = "strava_token.json"
 
-# === SERVIDOR PARA AUTENTICACIÓN LOCAL ===
-class TokenHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
-        if "/exchange_token" in self.path:
-            code = self.path.split("code=")[-1].split("&")[0]
-            token_data = exchange_code_for_token(code)
-            if token_data:
-                with open(TOKEN_FILE, "w") as f:
-                    json.dump(token_data, f)
-                self.send_response(200)
-                self.send_header("Content-type", "text/html; charset=utf-8")
-                self.end_headers()
-                self.wfile.write("""
-                <html>
-<head>
-    <title>Autenticación exitosa</title>
-    <script>
-        setTimeout(() => {
-            window.opener.location.reload();  // Recarga la app principal
-            window.close();                   // Cierra esta ventana
-        }, 1500);
-    </script>
-</head>
-<body style='font-family: sans-serif;'>
-    <h2>✅ Autenticación completada.</h2>
-    <p>Esta ventana se cerrará automáticamente en unos segundos.</p>
-</body>
-</html>
-
-                """.encode("utf-8"))
-            else:
-                self.send_response(200)
-                self.send_header("Content-type", "text/html; charset=utf-8")
-                self.end_headers()
-                self.wfile.write("❌ No se pudo obtener el token.".encode("utf-8"))
-
-def run_server():
-    server = HTTPServer(('localhost', 8000), TokenHandler)
-    print("🌐 Esperando autenticación en http://localhost:8000...")
-    server.handle_request()
-
+# === INTERCAMBIO DE CÓDIGO POR TOKEN ===
 def exchange_code_for_token(code):
     url = "https://www.strava.com/oauth/token"
     payload = {
@@ -61,43 +16,35 @@ def exchange_code_for_token(code):
     }
     response = requests.post(url, data=payload)
     if response.status_code == 200:
-        return response.json()
+        data = response.json()
+        st.session_state["access_token"] = data["access_token"]
+        st.session_state["refresh_token"] = data["refresh_token"]
+        st.session_state["athlete"] = data["athlete"]
+        return data
     else:
         print("❌ Error al obtener token:", response.text)
         return None
 
-# === TOKEN MANAGEMENT ===
-def cargar_token():
-    if os.path.exists(TOKEN_FILE):
-        with open(TOKEN_FILE, "r") as f:
-            return json.load(f).get("access_token")
-    return None
-
+# === AUTENTICACIÓN Y SESIÓN ===
 def get_access_token():
-    token = cargar_token()
-    if token:
-        return token
-    else:
-        threading.Thread(target=run_server).start()
-        auth_url = (
-            f"https://www.strava.com/oauth/authorize?client_id={CLIENT_ID}"
-            f"&redirect_uri={REDIRECT_URI}&response_type=code&scope=activity:read_all"
-        )
-        webbrowser.open(auth_url)
-
-# === FUNCIONES DE USUARIO ===
-def iniciar_sesion_strava():
-    get_access_token()
+    return st.session_state.get("access_token")
 
 def sesion_iniciada():
-    return os.path.exists(TOKEN_FILE)
+    return "access_token" in st.session_state
 
 def cerrar_sesion_strava():
-    if os.path.exists(TOKEN_FILE):
-        os.remove(TOKEN_FILE)
+    for key in ["access_token", "refresh_token", "athlete"]:
+        st.session_state.pop(key, None)
 
+def iniciar_sesion_strava():
+    # Ya no es necesario aquí; se hace todo desde app.py con el código
+    pass
+
+# === DATOS DEL USUARIO ===
 def obtener_datos_atleta():
     token = get_access_token()
+    if not token:
+        return None
     headers = {"Authorization": f"Bearer {token}"}
     response = requests.get("https://www.strava.com/api/v3/athlete", headers=headers)
     if response.status_code == 200:
@@ -107,6 +54,8 @@ def obtener_datos_atleta():
 # === DATOS DE ACTIVIDADES Y SEGMENTOS ===
 def get_segments_from_activity(activity_id):
     token = get_access_token()
+    if not token:
+        return None
     url = f"https://www.strava.com/api/v3/activities/{activity_id}?include_all_efforts=true"
     headers = {"Authorization": f"Bearer {token}"}
     response = requests.get(url, headers=headers)
