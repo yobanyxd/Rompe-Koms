@@ -8,7 +8,7 @@ CLIENT_SECRET = "98ab51d07e20b58141f3242e93879dd78d4dfbbc"
 REDIRECT_URI = "https://rompekoms.streamlit.app/"
 TOKEN_FILE = "strava_token.json"
 
-def intercambiar_codigo_por_token(code):
+def exchange_code_for_token(code):
     url = "https://www.strava.com/oauth/token"
     payload = {
         "client_id": CLIENT_ID,
