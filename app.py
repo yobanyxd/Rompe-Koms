@@ -160,7 +160,7 @@ if gpx_file:
         for seg in track.segments:
             puntos.extend(seg.points)
             for i in range(1, len(seg.points)):
-                d = seg.points[i-1].distance_3d(seg.points[i])
+                d = seg.points[i-1]._3d(seg.points[i])
                 elev = max(0, seg.points[i].elevation - seg.points[i-1].elevation)
                 total_dist += d
                 total_elev += elev
@@ -168,7 +168,7 @@ if gpx_file:
     elevaciones = []
     dist_acumulada = 0
     for i in range(1, len(puntos)):
-        d = puntos[i-1].distance_3d(puntos[i])
+        d = puntos[i-1]._3d(puntos[i])
         dist_acumulada += d
         distancias.append(dist_acumulada / 1000)
         elevaciones.append(puntos[i].elevation)
@@ -229,8 +229,8 @@ streams = get_streams_for_activity(actividad_id)
 
 if streams and "distance" in streams and "altitude" in streams:
     try:
-        d = streams["distance"]
-        a = streams["altitude"]
+        d = streams["distance"]["data"]
+        a = streams["altitude"]["data"]
         start = seleccionado["start_index"]
         end = seleccionado["end_index"]
 
