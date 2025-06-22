@@ -19,7 +19,7 @@ st.set_page_config(page_title="Calculadora de Segmentos 🚴‍♂️", layout="
 
 # Detectar tema (claro/oscuro) y mostrar logo correspondiente
 tema = st.get_option("theme.base")
-logo_path = "logo_light.png" if tema == "dark" else "logo_dark.png"
+logo_path = "logo_dark.png" if tema == "dark" else "logo_light.png"
 col1, col2 = st.columns([4, 1])
 with col1:
     st.markdown("## 🔥 CALCULADORA ROMPE KOM'S")
