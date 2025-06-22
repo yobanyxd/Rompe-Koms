@@ -1,179 +1,221 @@
 import streamlit as st
 import gpxpy
 import os
-import math
 import matplotlib.pyplot as plt
-from urllib.parse import urlencode
-
 from strava_utils import (
-    intercambiar_codigo_por_token,
+    get_segments_from_activity,
+    iniciar_sesion_strava,
     sesion_iniciada,
     cerrar_sesion_strava,
     obtener_datos_atleta,
-    get_segments_from_activity,
     get_streams_for_activity,
+    intercambiar_codigo_por_token
 )
 
 # === CONFIGURACIÓN GENERAL ===
 st.set_page_config(page_title="Calculadora de Segmentos 🚴‍♂️", layout="centered")
 
-# — Captura el “code” que Strava devuelve y cambia el token
-if (code := st.query_params.get("code")):
-    info = intercambiar_codigo_por_token(code[0])
-    if info:
+# Manejo del retorno de Strava
+query_params = st.query_params
+code = query_params.get("code")
+if code:
+    token_data = intercambiar_codigo_por_token(code)
+    if token_data:
         st.success("✅ ¡Sesión iniciada correctamente!")
-        # Limpia la query string y recarga
-        st.experimental_set_query_params()
-        st.experimental_rerun()
+        st.rerun()
     else:
         st.error("❌ Hubo un problema al iniciar sesión con Strava.")
 
-# — Cabecera y logo según tema
+# === ENCABEZADO ===
 tema = st.get_option("theme.base")
-logo = "logo_dark.png" if tema == "dark" else "logo_light.png"
-c1, c2 = st.columns([4,1])
-with c1:
+logo_path = "logo_dark.png" if tema == "dark" else "logo_light.png"
+col1, col2 = st.columns([4, 1])
+with col1:
     st.markdown("## 🔥 CALCULADORA ROMPE KOM'S")
-    st.caption("Analiza tus segmentos favoritos usando tu FTP, peso y tipo de bici.")
-with c2:
-    if os.path.exists(logo):
-        st.image(logo, width=100)
+    st.markdown("Analiza tus segmentos favoritos usando tu FTP, peso y tipo de bici.")
+with col2:
+    if os.path.exists(logo_path):
+        st.image(logo_path, width=100)
 
-st.markdown("---")
+# === MODO DE ENTRADA ===
+modo = st.radio("Selecciona el modo de entrada:", ["📂 Archivo GPX", "🛰️ Segmento Strava"], horizontal=True)
 
-# === SELECCIÓN DE MODO ===
-modo = st.radio(
-    "Selecciona modo de entrada:",
-    ("📂 Archivo GPX", "🗺️ Segmento de Strava"),
-    horizontal=True
-)
+# === ARCHIVO GPX O STRAVA ===
+gpx_file = None
+actividad_id = None
 
-# === OPCIÓN DE LOGIN (solo para Strava) ===
-login_strava = False
-if modo == "🗺️ Segmento de Strava":
-    login_strava = st.checkbox("🔐 Iniciar sesión con Strava (opcional)")
-
-# Si el usuario pidió login, muestro flujo OAuth o datos del atleta
-if login_strava:
-    if sesion_iniciada():
-        atleta = obtener_datos_atleta()
-        if atleta:
-            a1,a2 = st.columns([1,4])
-            a1.image(atleta["profile"], width=50)
-            a2.markdown(f"**{atleta['firstname']} {atleta['lastname']}**")
-            if st.button("🔓 Cerrar sesión con Strava"):
-                cerrar_sesion_strava()
-                st.experimental_rerun()
+if modo == "📂 Archivo GPX":
+    gpx_file = st.file_uploader("📁 Sube tu archivo GPX", type=["gpx"])
+elif modo == "🛰️ Segmento Strava":
+    usar_strava_login = st.checkbox("🔐 Iniciar sesión con Strava", value=False)
+    if usar_strava_login:
+        if sesion_iniciada():
+            datos = obtener_datos_atleta()
+            if datos:
+                col1, col2 = st.columns([1, 6])
+                col1.image(datos["profile"], width=50)
+                col2.markdown(f"**{datos['firstname']} {datos['lastname']}**")
+                if st.button("🔓 Cerrar sesión"):
+                    cerrar_sesion_strava()
+                    st.rerun()
+            else:
+                st.warning("⚠️ Error al obtener datos del atleta.")
+                if st.button("🔓 Forzar cierre de sesión"):
+                    cerrar_sesion_strava()
+                    st.rerun()
         else:
-            st.warning("⚠️ Error obteniendo datos. Fuerza cierre de sesión:")
-            if st.button("Forzar cierre de sesión"):
-                cerrar_sesion_strava()
-                st.experimental_rerun()
-    else:
-        params = urlencode({
-            "client_id":"141324",
-            "response_type":"code",
-            "redirect_uri":"https://rompekoms.streamlit.app/",
-            "approval_prompt":"auto",
-            "scope":"read,activity:read_all",
-        })
-        st.markdown(
-            f"[🔗 Iniciar sesión con Strava](https://www.strava.com/oauth/authorize?{params})",
-            unsafe_allow_html=True
-        )
+            st.markdown(
+                '<a href="https://www.strava.com/oauth/authorize?client_id=141324&response_type=code&redirect_uri=https://rompekoms.streamlit.app/&approval_prompt=auto&scope=read,activity:read" target="_self">🔗 Iniciar sesión con Strava</a>',
+                unsafe_allow_html=True
+            )
 
-st.markdown("---")
+    actividad_url = st.text_input("🔗 Pega el link o ID de una actividad pública de Strava")
+    if actividad_url:
+        if "activities" in actividad_url:
+            actividad_id = actividad_url.split("/")[-1]
+        else:
+            actividad_id = actividad_url
 
-# === DATOS BÁSICOS ===
-p1,p2 = st.columns(2)
-peso_user = p1.number_input("🏋️ Peso ciclista (kg)", 62.0)
-peso_bici = p2.number_input("🚲 Peso bici + equipo (kg)", 8.0)
-altura    = st.number_input("📏 Altura (cm)", 170)
-ftp       = st.number_input("⚡ FTP (watts)", 275.0)
-t_obj     = st.text_input("⏱️ Tiempo objetivo mm:ss (opcional)", "")
+# === DATOS DEL USUARIO ===
+col1, col2 = st.columns(2)
+peso_ciclista = col1.number_input("🏋️ Peso del ciclista (kg)", value=62.0)
+peso_bici = col2.number_input("🚲 Peso bici + equipo (kg)", value=8.0)
+altura = st.number_input("📏 Altura (cm)", value=170)
 
-# === PARÁMETROS AERODINÁMICOS ===
-tipo = st.selectbox("Tipo de bicicleta", ["Ruta","Triatlón","MTB","Urbana"])
-param = {"Ruta":(.32,.004),"Triatlón":(.25,.0035),"MTB":(.4,.008),"Urbana":(.38,.006)}[tipo]
-CdA, Crr = param
-rho, g = 1.225, 9.81
+tipo_bici = st.selectbox("Tipo de bicicleta", ["🚴‍♂️ Ruta", "🛞 Triatlón/Cabrita", "🚵‍♀️ MTB", "🚲 Urbana"])
+ftp = st.number_input("⚡ Tu FTP (watts)", value=275)
+tiempo_objetivo = st.text_input("🎯 Tiempo objetivo (opcional, formato mm o mm:ss)", value="")
 
-# === FUNCIONES DE CÁLCULO y GRAFICO ===
-def estimar_potencia(dist, elev, tiempo, masa):
-    v = dist/tiempo
-    Pg = masa*g*(elev/dist)*v
-    Pr = masa*g*Crr*v
-    Pa = .5*rho*CdA*v**3
-    return Pg+Pr+Pa
+# === PARÁMETROS ===
+bicis = {
+    "🚴‍♂️ Ruta": {"CdA": 0.32, "Crr": 0.004},
+    "🛞 Triatlón/Cabrita": {"CdA": 0.25, "Crr": 0.0035},
+    "🚵‍♀️ MTB": {"CdA": 0.4, "Crr": 0.008},
+    "🚲 Urbana": {"CdA": 0.38, "Crr": 0.006},
+}
+CdA = bicis[tipo_bici]["CdA"]
+Crr = bicis[tipo_bici]["Crr"]
+rho = 1.225
+g = 9.81
 
-def graficar(xs, ys):
-    plt.figure(figsize=(8,3))
-    plt.plot(xs, ys)
+# === FUNCIONES ===
+def estimar_potencia(dist, elev, tiempo_s, masa):
+    pendiente = elev / dist if dist else 0
+    v = dist / tiempo_s
+    return masa * g * pendiente * v + masa * g * Crr * v + 0.5 * rho * CdA * v**3
+
+def graficar(distancias, elevaciones):
+    plt.figure(figsize=(8, 3))
+    plt.plot(distancias, elevaciones)
     plt.xlabel("Distancia (km)")
     plt.ylabel("Altura (m)")
+    plt.title("Perfil del Segmento")
     st.pyplot(plt)
 
 def procesar(dist, elev, masa):
-    st.markdown(f"**Distancia:** {dist/1000:.2f} km   **Desnivel:** {elev:.0f} m")
-    if t_obj:
-        mm, ss = (map(int, t_obj.split(":")) if ":" in t_obj else (int(t_obj),0))
-        t_seg = mm*60+ss
-        p_req = estimar_potencia(dist,elev,t_seg,masa)
-        st.success(f"Necesitas ~ {p_req:.0f} W  ({p_req/peso_user:.2f} W/kg)")
+    st.markdown(f"📏 **Distancia:** {dist/1000:.2f} km")
+    st.markdown(f"🧗 **Desnivel:** {elev:.0f} m")
+    if tiempo_objetivo:
+        try:
+            partes = tiempo_objetivo.strip().split(":")
+            minutos = int(partes[0])
+            segundos = int(partes[1]) if len(partes) > 1 else 0
+            tiempo_s = minutos * 60 + segundos
+            potencia = estimar_potencia(dist, elev, tiempo_s, masa)
+            wkg = potencia / peso_ciclista
+            peso_obj = ftp / wkg
+            st.markdown("---")
+            st.subheader("📊 Resultado estimado")
+            st.success(f"⚡ Necesitas aprox. **{potencia:.0f}w**")
+            st.info(f"📈 Eso equivale a **{wkg:.2f} w/kg**")
+            st.warning(f"⚖️ Peso necesario con tu FTP: **{peso_obj:.1f} kg**")
+        except:
+            st.error("⚠️ Tiempo mal escrito. Usa `mm` o `mm:ss`")
     else:
-        p90 = ftp*0.9
-        st.info(f"Con 90% FTP ({p90:.0f} W) ≈ {(dist/( (lambda P: next((v for v in [i/10 for i in range(1,1001)] if abs((masa*g*(elev/dist)*v + masa*g*Crr*v + .5*rho*CdA*v**3)-P)<.1),1) )(p90)))/60:.1f} min")
+        potencia = ftp * 0.9
+        pendiente = elev / dist if dist else 0
+        def buscar_velocidad(p):
+            v = 1.0
+            for _ in range(1000):
+                total = masa * g * pendiente * v + masa * g * Crr * v + 0.5 * rho * CdA * v**3
+                error = p - total
+                if abs(error) < 0.1:
+                    return v
+                v += error / 200
+            return v
+        v = buscar_velocidad(potencia)
+        tiempo_min = (dist / v) / 60
+        st.markdown("---")
+        st.subheader("📊 Resultado estimado")
+        st.success(f"⏱️ Con **{potencia:.0f}w**, tardarías aprox. **{tiempo_min:.1f} minutos**")
 
-# === GPX o STRAVA ===
-if modo=="📂 Archivo GPX":
-    gpx_file = st.file_uploader("📁 Sube tu GPX", type="gpx")
-    if gpx_file:
-        gpx = gpxpy.parse(gpx_file.read().decode())
-        pts, td, te = [],0,0
-        for tr in gpx.tracks:
-            for seg in tr.segments:
-                pts += seg.points
-                for i in range(1,len(seg.points)):
-                    d = seg.points[i-1].distance_3d(seg.points[i])
-                    e = max(0, seg.points[i].elevation-seg.points[i-1].elevation)
-                    td+=d; te+=e
-        xs, ys, acc = [],[],0
-        for i in range(1,len(pts)):
-            d=pts[i-1].distance_3d(pts[i]); acc+=d
-            xs.append(acc/1000); ys.append(pts[i].elevation)
-        masa = peso_user + peso_bici
-        graficar(xs,ys)
-        procesar(td,te,masa)
+# === PROCESAMIENTO DE GPX ===
+if gpx_file:
+    gpx = gpxpy.parse(gpx_file.read().decode("utf-8"))
+    total_dist = 0
+    total_elev = 0
+    puntos = []
+    for track in gpx.tracks:
+        for seg in track.segments:
+            puntos.extend(seg.points)
+            for i in range(1, len(seg.points)):
+                d = seg.points[i-1].distance_3d(seg.points[i])
+                elev = max(0, seg.points[i].elevation - seg.points[i-1].elevation)
+                total_dist += d
+                total_elev += elev
+    distancias = []
+    elevaciones = []
+    dist_acumulada = 0
+    for i in range(1, len(puntos)):
+        d = puntos[i-1].distance_3d(puntos[i])
+        dist_acumulada += d
+        distancias.append(dist_acumulada / 1000)
+        elevaciones.append(puntos[i].elevation)
+    masa_total = peso_ciclista + peso_bici
+    graficar(distancias, elevaciones)
+    procesar(total_dist, total_elev, masa_total)
 
-elif modo=="🗺️ Segmento de Strava":
-    act = st.text_input("🔗 ID o URL del segmento Strava")
-    if act:
-        sid = act.split("/")[-1]
-        segs = get_segments_from_activity(sid)
-        if not segs:
-            st.error("❌ No se encontraron segmentos.")
-        else:
-            masa = peso_user + peso_bici
-            orden = sorted(
-                segs,
-                key=lambda s: -estimar_potencia(
-                    s["segment"]["distance"],
-                    s["segment"]["elevation_high"]-s["segment"]["elevation_low"],
-                    s["segment"]["distance"]/(ftp*0.9),
-                    masa
-                )
-            )
-            opts = [f"🎯 {s['segment']['name']} ({s['segment']['distance']/1000:.2f} km)"
-                    for s in orden]
-            sel = st.selectbox("Elige segmento", opts)
-            S   = orden[opts.index(sel)]["segment"]
-            d,e = S["distance"], S["elevation_high"]-S["elevation_low"]
-            graficar(
-                [v/1000 for v in get_streams_for_activity(sid)["distance"]["data"][orden[opts.index(sel)]["start_index"]:orden[opts.index(sel)]["end_index"]]],
-                get_streams_for_activity(sid)["altitude"]["data"][orden[opts.index(sel)]["start_index"]:orden[opts.index(sel)]["end_index"]]
-            )
-            procesar(d,e,masa)
+# === PROCESAMIENTO DE STRAVA ===
+elif actividad_id:
+    segmentos = get_segments_from_activity(actividad_id)
+    if not segmentos:
+        st.error("❌ No se encontraron segmentos.")
+    else:
+        masa_total = peso_ciclista + peso_bici
+        segmentos = sorted(segmentos, key=lambda s: -estimar_potencia(
+            s['segment']['distance'],
+            s['segment']['elevation_high'] - s['segment']['elevation_low'],
+            (s['segment']['distance'] / (ftp * 0.9)),
+            masa_total
+        ))
+        st.success(f"✅ {len(segmentos)} segmentos encontrados.")
+        opciones = []
+        for s in segmentos:
+            dist = s['segment']['distance']
+            elev = s['segment']['elevation_high'] - s['segment']['elevation_low']
+            grad = elev / dist if dist else 0
+            color = "🟣" if grad > 0.08 else "🔴" if grad > 0.06 else "🟠" if grad > 0.04 else "🟡" if grad > 0.02 else "🟢"
+            opciones.append(f"{color} {s['segment']['name']} ({dist/1000:.2f} km)")
+        selected = st.selectbox("Elige un segmento:", opciones)
+        seleccionado = segmentos[opciones.index(selected)]
+        if seleccionado:
+            distancia = seleccionado['segment']['distance']
+            elevacion = seleccionado['segment']['elevation_high'] - seleccionado['segment']['elevation_low']
+            masa_total = peso_ciclista + peso_bici
+            procesar(distancia, elevacion, masa_total)
+            st.subheader("📈 Perfil del Segmento")
+            streams = get_streams_for_activity(actividad_id)
+            if streams and "distance" in streams and "altitude" in streams:
+                d = streams["distance"]
+                a = streams["altitude"]
+                start = seleccionado["start_index"]
+                end = seleccionado["end_index"]
+                graficar([x / 1000 for x in d[start:end]], a[start:end])
+            else:
+                st.warning("⚠️ No se pudo obtener el perfil de elevación.")
 
-# === PIE DE PÁGINA ===
-st.markdown("---")
-st.caption("🛠️ Desarrollado con cariño por **Yobwear** — v1.0")
+# === FOOTER ===
+st.markdown("""
+---
+<p style='text-align: center; font-size: 0.8rem;'>🛠️ Desarrollado con cariño por <b>Yobwear</b> — v1.0</p>
+""", unsafe_allow_html=True)
