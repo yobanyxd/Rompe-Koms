@@ -87,10 +87,6 @@ with col2:
         </div>
     """, unsafe_allow_html=True)
 
-st.markdown("## 🔥 CALCULADORA ROMPE KOM'S")
-st.markdown("Analiza tus segmentos favoritos usando tu FTP, peso y tipo de bici.")
-
-
 # === MODO DE ENTRADA ===
 modo = st.radio("Selecciona el modo de entrada:", ["📂 Archivo GPX", "🌐 Segmento Strava"], horizontal=True)
 
